@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}</style>
+<title>Abfahrt auf einen Blick</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --night:#0D0706;
+    --night-2:#160B09;
+    --brick:#7E1A12;
+    --brick-deep:#4A0E09;
+    --signal:#E5402A;
+    --bone:#F3EAE6;
+    --ash:#B29C96;
+    --ash-dim:#7D6A66;
+    --line:rgba(243,234,230,.13);
+    --line-strong:rgba(243,234,230,.28);
+    --ok:#7BD88F;
+    --display:"Poppins","Montserrat","Helvetica Neue",Arial,sans-serif;
+    --body:"Figtree","Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  html{background:var(--night)}
+  body{
+    background:var(--night);
+    color:var(--bone);
+    font-family:var(--body);
+    font-size:17px;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  /* film grain */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:50;opacity:.07;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding-inline:clamp(16px,4vw,40px)}
+  h1,h2,h3{font-family:var(--display);font-weight:800;text-transform:lowercase;letter-spacing:-.02em;line-height:.98;margin:0;text-wrap:balance}
+  h2{font-size:clamp(40px,7vw,84px)}
+  h3{font-size:clamp(24px,3vw,32px);font-weight:700;line-height:1.05}
+  p{margin:0}
+  .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ash)}
+  .eyebrow b{color:var(--signal);font-weight:600}
+  .lede{font-size:clamp(18px,2vw,21px);color:var(--ash);max-width:60ch}
+  .lede strong{color:var(--bone);font-weight:600}
+  .handle{color:var(--signal);font-weight:600;white-space:nowrap}
+  section{padding-block:clamp(64px,10vw,120px);border-top:1px solid var(--line)}
+
+  /* ---------- HERO ---------- */
+  .hero{position:relative;overflow:hidden;border-top:0;padding-block:0;background:var(--brick-deep)}
+  .hero-bg{
+    position:absolute;inset:0;background:url("logo.png") center 30%/cover no-repeat;
+    filter:grayscale(1) contrast(1.15) brightness(.55);
+    mix-blend-mode:luminosity;opacity:.55;
+  }
+  .hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,7,6,.1) 0%,rgba(126,26,18,.35) 45%,var(--night) 100%)}
+  .hero .wrap{position:relative;z-index:1;padding-block:clamp(28px,5vw,44px) clamp(56px,9vw,96px);display:grid;gap:clamp(40px,8vw,90px)}
+  .hero-top{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+  .hero-top img{width:64px;height:64px;object-fit:cover;border-radius:4px;box-shadow:0 0 0 1px var(--line-strong)}
+  .hero-date{font-family:var(--display);font-weight:800;font-size:clamp(68px,17vw,220px);line-height:.85;letter-spacing:-.05em;color:var(--bone)}
+  .hero-sub{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,56px);letter-spacing:-.03em;line-height:1;margin-top:8px}
+  .hero-sub span{color:var(--signal)}
+  .hero-date span{color:var(--signal)}
+  .hero h1{font-size:clamp(34px,6vw,72px);max-width:16ch;margin-top:18px}
+  .hero .lede{margin-top:22px}
+
+  /* ---------- MARQUEE ---------- */
+  .marquee{background:var(--signal);color:var(--night);overflow:hidden;border-block:0}
+  .marquee-track{display:flex;gap:48px;white-space:nowrap;padding-block:14px;width:max-content;animation:scroll 32s linear infinite}
+  .marquee-track span{font-family:var(--display);font-weight:800;font-size:clamp(18px,2.4vw,26px);text-transform:lowercase;letter-spacing:-.01em}
+  .marquee-track i{font-style:normal;opacity:.55;margin-inline:10px}
+  @keyframes scroll{to{transform:translateX(-50%)}}
+
+  /* ---------- LOOP ---------- */
+  .split{display:grid;grid-template-columns:1fr;gap:40px}
+  @media(min-width:880px){.split{grid-template-columns:5fr 6fr;align-items:start;gap:64px}}
+  .loop{list-style:none;margin:0;padding:0;display:grid;gap:0;counter-reset:l}
+  .loop li{display:grid;grid-template-columns:44px 1fr;gap:16px;padding-block:18px;border-bottom:1px solid var(--line);align-items:baseline}
+  .loop li:first-child{border-top:1px solid var(--line)}
+  .loop .k{font-family:var(--mono);font-size:13px;color:var(--signal)}
+  .loop b{font-family:var(--display);font-weight:700;font-size:20px;text-transform:lowercase;display:block;line-height:1.2}
+  .loop small{color:var(--ash);font-size:15.5px;display:block;margin-top:4px}
+  .loop li.key{background:linear-gradient(90deg,rgba(229,64,42,.14),transparent 80%)}
+  .loop li.key b{color:var(--signal)}
+
+  /* ---------- TIMELINE ---------- */
+  .tl{display:grid;grid-template-columns:1fr;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:48px}
+  @media(min-width:820px){.tl{grid-template-columns:1fr 1.25fr 1fr}}
+  .tl a{background:var(--night);padding:28px 24px 30px;display:grid;gap:12px;text-decoration:none;color:inherit;align-content:start;transition:background .2s}
+  .tl a:hover,.tl a:focus-visible{background:var(--night-2)}
+  .tl a:focus-visible{outline:2px solid var(--signal);outline-offset:-2px}
+  .tl a.now{background:var(--brick)}
+  .tl a.now:hover{background:#8d1f16}
+  .tl .when{font-family:var(--mono);font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ash)}
+  .tl a.now .when{color:var(--bone);opacity:.8}
+  .tl h3{font-size:clamp(30px,3.6vw,42px)}
+  .tl p{color:var(--ash);font-size:15.5px}
+  .tl a.now p{color:rgba(243,234,230,.85)}
+  .tl .goal{font-family:var(--mono);font-size:12.5px;color:var(--bone);border-top:1px solid var(--line-strong);padding-top:12px;margin-top:4px}
+
+  /* ---------- PHASE HEADER ---------- */
+  .phase-head{display:grid;gap:18px;margin-bottom:56px}
+  .phase-tag{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--bone);border:1px solid var(--line-strong);border-radius:999px;padding:6px 14px;width:max-content;max-width:100%}
+  .phase-tag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--signal)}
+
+  /* ---------- SCHEDULE ---------- */
+  .sched{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  @media(min-width:640px){.sched{grid-template-columns:repeat(3,1fr)}}
+  @media(min-width:1000px){.sched{grid-template-columns:repeat(6,1fr)}}
+  .sched div{border:1px solid var(--line);padding:14px 14px 16px;display:grid;gap:6px}
+  .sched .d{font-family:var(--display);font-weight:800;font-size:28px;letter-spacing:-.02em;line-height:1}
+  .sched .w{font-family:var(--mono);font-size:11.5px;color:var(--ash);letter-spacing:.08em;text-transform:uppercase}
+  .sched .t{font-size:14px;color:var(--ash);line-height:1.35}
+  .sched div:last-child{border-color:var(--signal)}
+  .sched div:last-child .d{color:var(--signal)}
+
+  /* ---------- PHONES ---------- */
+  .phones{display:grid;grid-template-columns:1fr;gap:28px;margin-top:56px}
+  @media(min-width:720px){.phones{grid-template-columns:repeat(3,1fr)}}
+  .step{display:grid;gap:14px;align-content:start}
+  .step .cap{font-family:var(--mono);font-size:12.5px;color:var(--ash);letter-spacing:.06em}
+  .step .cap b{color:var(--signal);font-weight:600}
+  .phone{background:#050303;border:1px solid var(--line-strong);border-radius:30px;padding:14px;max-width:320px;width:100%;box-shadow:0 30px 60px -30px rgba(229,64,42,.35)}
+  .screen{background:#120a09;border-radius:20px;padding:16px 14px 18px;min-height:340px;display:flex;flex-direction:column;gap:12px;font-size:14.5px;line-height:1.4}
+  .ig-top{display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+  .ig-top img{width:30px;height:30px;border-radius:50%;object-fit:cover}
+  .ig-top b{font-size:14px;font-weight:600}
+  .ig-top small{display:block;color:var(--ash-dim);font-size:12px}
+  .post-img{aspect-ratio:1/1;max-width:100%;border-radius:6px;background:
+      radial-gradient(circle at 30% 30%,rgba(229,64,42,.55),transparent 55%),
+      radial-gradient(circle at 75% 70%,rgba(126,26,18,.9),transparent 60%),#1f0c0a;
+    display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:44px;text-transform:lowercase;letter-spacing:-.03em}
+  .cmt{display:flex;gap:8px;align-items:baseline}
+  .cmt b{font-weight:600}
+  .cmt .kw{font-family:var(--mono);background:rgba(229,64,42,.18);color:var(--signal);padding:1px 6px;border-radius:4px}
+  .muted{color:var(--ash-dim);font-size:12.5px}
+  .bubble{background:#2a1512;border-radius:18px 18px 18px 4px;padding:10px 13px;max-width:90%}
+  .bubble.me{background:var(--signal);color:#fff;border-radius:18px 18px 4px 18px;align-self:flex-end}
+  .linkcard{border:1px solid var(--line-strong);border-radius:12px;padding:10px 12px;display:grid;gap:2px}
+  .linkcard b{font-size:13.5px}
+  .linkcard span{font-family:var(--mono);font-size:12px;color:var(--signal)}
+  .field{border:1px solid var(--line);border-radius:10px;padding:9px 11px;display:grid;gap:1px}
+  .field small{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ash-dim)}
+  .char{margin-top:auto;border-radius:14px;padding:14px;background:linear-gradient(160deg,var(--brick),#2a0906);display:grid;gap:6px}
+  .char .n{font-family:var(--display);font-weight:800;font-size:24px;text-transform:lowercase;line-height:1}
+  .char .r{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:rgba(243,234,230,.7)}
+  .char p{font-size:13.5px;color:rgba(243,234,230,.9)}
+  .btn{background:var(--bone);color:var(--night);border-radius:999px;text-align:center;padding:10px;font-weight:700;font-size:14px}
+  .btn.red{background:var(--signal);color:#fff}
+
+  /* ---------- CHALLENGES ---------- */
+  .chal{display:grid;grid-template-columns:1fr;gap:1px;background:var(--line);border:1px solid var(--line)}
+  @media(min-width:860px){.chal{grid-template-columns:repeat(3,1fr)}}
+  .chal article{background:var(--night);padding:28px 24px 30px;display:grid;gap:14px;align-content:start}
+  .chal .ic{width:52px;height:52px;border-radius:50%;border:1.5px solid var(--signal);display:grid;place-items:center;color:var(--signal)}
+  .chal .ic svg{width:24px;height:24px}
+  .chal h3{font-size:clamp(28px,3vw,36px)}
+  .chal .task{font-size:18px;line-height:1.45}
+  .chal ul{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:8px;font-size:15px;color:var(--ash)}
+  .chal li{display:grid;grid-template-columns:18px 1fr;gap:8px}
+  .chal li::before{content:"→";color:var(--signal);font-family:var(--mono)}
+  .chip{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line-strong);border-radius:999px;padding:4px 10px;width:max-content;color:var(--bone)}
+  .rule{margin-top:28px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 22px;padding:22px 24px;border:1px solid var(--signal);background:rgba(229,64,42,.08)}
+  .rule b{font-family:var(--display);font-weight:800;font-size:clamp(20px,2.4vw,26px);text-transform:lowercase}
+  .rule span{color:var(--ash);font-size:15.5px;flex:1 1 280px}
+
+  /* ---------- SCREEN MOCK ---------- */
+  .stage{margin-top:72px}
+  .beamer{margin-top:24px;aspect-ratio:16/9;max-width:100%;border:1px solid var(--line-strong);background:#070303;display:grid;grid-template-columns:2.2fr 1fr;grid-template-rows:auto 1fr auto;gap:clamp(6px,1vw,12px);padding:clamp(8px,1.4vw,18px);font-size:clamp(8px,1.15vw,14px);box-shadow:0 0 120px -40px rgba(229,64,42,.6)}
+  .b-head{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .b-head .t{font-family:var(--display);font-weight:800;font-size:2em;text-transform:lowercase;letter-spacing:-.02em;line-height:1}
+  .b-head .live{font-family:var(--mono);color:var(--signal);letter-spacing:.1em}
+  .b-head .live::before{content:"● "}
+  .b-grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(2,1fr);gap:clamp(4px,.7vw,8px);min-height:0}
+  .tile{border-radius:4px;position:relative;overflow:hidden;min-height:0}
+  .tile:nth-child(1){background:radial-gradient(circle at 35% 40%,#e5402a 0,transparent 45%),radial-gradient(circle at 70% 60%,#f3b199 0,transparent 30%),#3a100b}
+  .tile:nth-child(2){background:radial-gradient(circle at 60% 35%,#b92a1c 0,transparent 50%),#1e0907}
+  .tile:nth-child(3){background:radial-gradient(circle at 40% 60%,#f08a6c 0,transparent 35%),radial-gradient(circle at 80% 20%,#7e1a12 0,transparent 50%),#2a0c09}
+  .tile:nth-child(4){background:radial-gradient(circle at 50% 50%,#e5402a 0,transparent 40%),#150605}
+  .tile:nth-child(5){background:radial-gradient(circle at 25% 70%,#d9563d 0,transparent 45%),#2e0d0a}
+  .tile:nth-child(6){background:radial-gradient(circle at 70% 45%,#f3eae6 0,transparent 18%),radial-gradient(circle at 40% 55%,#9c2317 0,transparent 55%),#170706}
+  .tile span{position:absolute;left:6%;bottom:6%;font-family:var(--mono);font-size:.85em;background:rgba(0,0,0,.55);padding:1px 5px;border-radius:3px}
+  .tile .v{left:auto;right:6%;color:var(--signal)}
+  .b-side{display:grid;grid-template-rows:auto auto 1fr;gap:clamp(4px,.7vw,8px);min-height:0}
+  .kpi{border:1px solid var(--line);padding:.7em .8em;display:grid;gap:.1em}
+  .kpi .n{font-family:var(--display);font-weight:800;font-size:2.4em;line-height:1;font-variant-numeric:tabular-nums}
+  .kpi .l{font-family:var(--mono);font-size:.8em;color:var(--ash);letter-spacing:.06em;text-transform:uppercase}
+  .kpi .n em{font-style:normal;color:var(--signal)}
+  .feed{border:1px solid var(--line);padding:.6em .8em;display:grid;gap:.45em;align-content:start;overflow:hidden;min-height:0}
+  .feed p{line-height:1.25}
+  .feed b{color:var(--signal);font-weight:600}
+  .b-foot{grid-column:1/-1;background:var(--signal);color:var(--night);display:flex;justify-content:space-between;align-items:center;gap:8px;padding:.5em .9em;font-family:var(--display);font-weight:800;text-transform:lowercase;font-size:1.25em}
+  .b-foot .qr{width:2.2em;height:2.2em;background:
+     conic-gradient(var(--night) 25%,transparent 0 50%,var(--night) 0 75%,transparent 0) 0 0/.55em .55em,var(--bone);border:.18em solid var(--bone);flex:none}
+  .stage-notes{display:grid;grid-template-columns:1fr;gap:18px;margin-top:22px}
+  @media(min-width:760px){.stage-notes{grid-template-columns:repeat(3,1fr)}}
+  .stage-notes p{font-size:15px;color:var(--ash);border-left:2px solid var(--signal);padding-left:14px}
+  .stage-notes b{color:var(--bone)}
+
+  /* ---------- CATCH / FLOW ---------- */
+  .flow{display:grid;grid-template-columns:1fr;gap:10px;margin-top:28px}
+  @media(min-width:860px){.flow{grid-template-columns:repeat(4,1fr);gap:0}}
+  .flow div{border:1px solid var(--line);padding:20px 18px;display:grid;gap:6px;position:relative;background:var(--night)}
+  @media(min-width:860px){
+    .flow div + div{border-left:0}
+    .flow div:not(:last-child)::after{content:"";position:absolute;right:-9px;top:50%;width:16px;height:16px;background:var(--night);border-top:1px solid var(--line-strong);border-right:1px solid var(--line-strong);transform:translateY(-50%) rotate(45deg);z-index:1}
+  }
+  .flow .who{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal)}
+  .flow b{font-family:var(--display);font-weight:700;font-size:19px;text-transform:lowercase;line-height:1.15}
+  .flow p{font-size:14.5px;color:var(--ash)}
+
+  /* ---------- DRAW ---------- */
+  .draw{display:grid;grid-template-columns:1fr;gap:40px;margin-top:88px}
+  @media(min-width:880px){.draw{grid-template-columns:1fr 1fr;gap:64px}}
+  .check{list-style:none;margin:0;padding:0;display:grid;gap:0}
+  .check li{display:grid;grid-template-columns:34px 1fr;gap:14px;padding-block:16px;border-bottom:1px solid var(--line);align-items:start}
+  .check li:first-child{border-top:1px solid var(--line)}
+  .check .s{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line-strong);display:grid;place-items:center;font-family:var(--mono);font-size:12px;color:var(--ash);margin-top:2px}
+  .check li.on .s{background:var(--signal);border-color:var(--signal);color:#fff}
+  .check b{display:block;font-weight:600}
+  .check small{display:block;color:var(--ash);font-size:15px;margin-top:2px}
+  .note{margin-top:20px;font-size:15px;color:var(--ash);padding:16px 18px;background:var(--night-2);border:1px solid var(--line)}
+  .note b{color:var(--bone)}
+  .progress .row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px}
+  .progress .row.done{border-color:rgba(123,216,143,.35)}
+  .progress .ok{color:var(--ok);font-family:var(--mono);font-size:12px}
+  .progress .todo{color:var(--ash-dim);font-family:var(--mono);font-size:12px}
+
+  /* ---------- AFTER ---------- */
+  .after{display:grid;grid-template-columns:1fr;gap:40px;align-items:center}
+  @media(min-width:880px){.after{grid-template-columns:6fr 5fr;gap:64px}}
+  .after .phone{justify-self:center}
+
+  /* ---------- KPIs / PRIVACY / NEEDS ---------- */
+  .three{display:grid;grid-template-columns:1fr;gap:48px}
+  @media(min-width:900px){.three{grid-template-columns:repeat(3,1fr);gap:40px}}
+  .three h3{margin-bottom:18px}
+  .plain{list-style:none;margin:0;padding:0;display:grid;gap:0}
+  .plain li{padding-block:12px;border-bottom:1px solid var(--line);font-size:15.5px;color:var(--ash)}
+  .plain li:first-child{border-top:1px solid var(--line)}
+  .plain b{color:var(--bone);font-weight:600}
+
+  .road{display:grid;grid-template-columns:1fr;gap:0;margin-top:48px;border-left:1px solid var(--line-strong);padding-left:0}
+  .road div{display:grid;grid-template-columns:110px 1fr;gap:18px;padding:14px 0 14px 22px;position:relative;align-items:baseline}
+  .road div::before{content:"";position:absolute;left:-5px;top:22px;width:9px;height:9px;border-radius:50%;background:var(--night);border:1.5px solid var(--ash)}
+  .road div.big::before{background:var(--signal);border-color:var(--signal)}
+  .road .d{font-family:var(--mono);font-size:13px;color:var(--ash);letter-spacing:.04em}
+  .road b{font-weight:600}
+  .road span{color:var(--ash);font-size:15px}
+  .road div.big b{font-family:var(--display);font-weight:800;font-size:26px;text-transform:lowercase;color:var(--signal)}
+
+  footer{padding-block:80px 64px;border-top:1px solid var(--line);text-align:left}
+  footer .big{font-family:var(--display);font-weight:800;text-transform:lowercase;font-size:clamp(40px,8vw,96px);letter-spacing:-.03em;line-height:.95}
+  footer .big span{color:var(--signal)}
+  footer p{margin-top:20px;color:var(--ash);font-size:15px}
+
+  @media(max-width:520px){
+    .road div{grid-template-columns:1fr;gap:2px}
+    .beamer{grid-template-columns:1fr;aspect-ratio:auto;font-size:11px}
+    .b-grid{aspect-ratio:3/2}
+    .b-side{grid-template-columns:1fr 1fr;grid-template-rows:auto}
+    .feed{grid-column:1/-1}
+  }
+  /* ---------- LIVE DEMO ---------- */
+  .demo{margin-top:10px;border:1px dashed var(--signal);border-radius:14px;padding:16px;display:grid;gap:12px;background:rgba(229,64,42,.06)}
+  .demo-tag{font-family:var(--mono);font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--signal)}
+  .demo-btn{display:block;width:100%;border:0;cursor:pointer;font-family:var(--body)}
+  .demo-btn:focus-visible,#demo-file:focus-visible + canvas{outline:2px solid var(--bone);outline-offset:2px}
+  label.demo-btn:focus-within{outline:2px solid var(--bone)}
+  #demo-preview{width:100%;max-width:240px;aspect-ratio:9/16;object-fit:cover;border-radius:10px;justify-self:center;box-shadow:0 0 0 1px var(--line-strong)}
+  .demo-status{font-size:14px;color:var(--ash);line-height:1.45}
+  .demo-status b{color:var(--bone)}
+  .stars{display:flex;gap:6px;justify-content:space-between}
+  .stars button{flex:1;aspect-ratio:1;max-width:56px;border:1px solid var(--line-strong);border-radius:10px;background:transparent;color:var(--ash-dim);font-size:24px;line-height:1;cursor:pointer}
+  .stars button.on{color:var(--signal);border-color:var(--signal);background:rgba(229,64,42,.1)}
+  .stars button:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
+  .vibe-text{width:100%;resize:none;background:#120a09;color:var(--bone);border:1px solid var(--line-strong);border-radius:10px;padding:10px 12px;font:inherit;font-size:15px}
+  .vibe-text:focus-visible{outline:2px solid var(--signal);outline-offset:1px}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .d-preview{width:100%;max-width:240px;aspect-ratio:9/16;object-fit:cover;border-radius:10px;justify-self:center;box-shadow:0 0 0 1px var(--line-strong)}
+  .consent{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;font-size:13.5px;line-height:1.45;color:var(--ash);cursor:pointer;padding:10px 12px;border:1px solid var(--line-strong);border-radius:10px}
+  .consent b{color:var(--bone);font-weight:600}
+  .consent input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--signal)}
+  .consent input:focus-visible{outline:2px solid var(--bone);outline-offset:2px}
+
+  /* ---------- FOTOS / SPEICHERUNG ---------- */
+  .photos{margin-top:64px;display:grid;gap:0}
+  .photo-paths{display:grid;grid-template-columns:1fr;gap:1px;background:var(--line);border:1px solid var(--line);margin-top:24px}
+  @media(min-width:820px){.photo-paths{grid-template-columns:repeat(3,1fr)}}
+  .photo-paths div{background:var(--night);padding:22px 20px;display:grid;gap:10px;align-content:start}
+  .photo-paths div.hl{background:#1c0907}
+  .photo-paths b{font-family:var(--display);font-weight:700;font-size:19px;line-height:1.2;text-transform:lowercase}
+  .photo-paths p{font-size:15px;color:var(--ash)}
+
+  /* ---------- STORY STATT LEINWAND ---------- */
+  .story-split{display:grid;grid-template-columns:1fr;gap:40px;margin-top:28px;align-items:center}
+  @media(min-width:820px){.story-split{grid-template-columns:6fr 5fr;gap:64px}}
+  .story-split .phone{justify-self:center}
+  .poll{background:var(--bone);color:var(--night);border-radius:14px;padding:12px;display:grid;gap:8px;margin-top:-4px}
+  .poll b{font-family:var(--display);font-weight:700;font-size:16px;text-transform:lowercase;text-align:center}
+  .poll .opt{position:relative;border-radius:8px;background:#e6d9d4;padding:7px 10px;display:flex;justify-content:space-between;font-weight:600;font-size:14px;overflow:hidden}
+  .poll .opt i{position:absolute;inset:0 auto 0 0;background:rgba(229,64,42,.35);font-style:normal}
+  .poll .opt span{position:relative}
+  @media(min-width:900px){.three.two{grid-template-columns:repeat(2,1fr)}}
+  /* ---------- AUSLOSUNG ---------- */
+  .duo{display:grid;grid-template-columns:1fr;gap:28px;margin-top:40px;justify-items:center}
+  @media(min-width:720px){.duo{grid-template-columns:repeat(2,minmax(0,320px));justify-content:center;gap:48px}}
+  .duo .step{width:100%;max-width:320px}
+  .pot{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;justify-content:space-between;align-items:baseline}
+  .pot .n{font-family:var(--display);font-weight:800;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+  .pot small{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ash)}
+  .btn.ghost{background:transparent;color:var(--bone);box-shadow:inset 0 0 0 1px var(--line-strong)}
+  .win{flex:1;border-radius:16px;padding:18px 16px;display:grid;align-content:center;gap:10px;text-align:center;
+    background:radial-gradient(circle at 20% 15%,rgba(243,234,230,.35) 0 3px,transparent 4px),radial-gradient(circle at 80% 25%,rgba(229,64,42,.9) 0 4px,transparent 5px),
+      radial-gradient(circle at 30% 80%,rgba(243,234,230,.3) 0 3px,transparent 4px),radial-gradient(circle at 75% 75%,rgba(229,64,42,.8) 0 3px,transparent 4px),
+      radial-gradient(circle at 55% 10%,rgba(243,234,230,.25) 0 2px,transparent 3px),linear-gradient(160deg,var(--signal),var(--brick) 60%,#2a0906)}
+  .win .n{font-family:var(--display);font-weight:800;font-size:44px;line-height:.9;text-transform:lowercase;letter-spacing:-.03em}
+  .win p{font-size:13.5px;color:rgba(243,234,230,.92)}
+  .live-code{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:var(--mono);font-size:13px;background:rgba(13,7,6,.45);border-radius:999px;padding:6px 12px;justify-self:center}
+  .live-code::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok);animation:pulse 1.2s ease-in-out infinite}
+  @keyframes pulse{50%{opacity:.25}}
+  @media(prefers-reduced-motion:reduce){.live-code::before{animation:none}}
+  @media(prefers-reduced-motion:reduce){
+    .marquee-track{animation:none}
+    *{transition:none!important}
+  }
+</style>
+</head>
+<body>
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="wrap">
+    <div class="hero-top">
+      <img src="logo.png" alt="alfons x Logo">
+      <span class="eyebrow">Konzept · <b>Samstag, 24.10.2026</b></span>
+    </div>
+    <div>
+      <div class="hero-date">abfahrt<span>.</span></div>
+      <div class="hero-sub">24<span>/</span>10 · alfons x</div>
+      <h1>nächster halt: ganz instagram.</h1>
+      <p class="lede">Ein Spiel in drei Wellen, damit die Leute auf <span class="handle">@alfonsx_sigmaringen</span> <strong>kommentieren, markieren und teilen</strong>.</p>
+    </div>
+  </div>
+</header>
+
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>abfahrt 24/10 <i>✦</i> story mit @alfonsx_sigmaringen <i>→</i> link per dm <i>→</i> 3 challenges <i>→</i> gewinnen <i>✦</i></span>
+    <span>abfahrt 24/10 <i>✦</i> story mit @alfonsx_sigmaringen <i>→</i> link per dm <i>→</i> 3 challenges <i>→</i> gewinnen <i>✦</i></span>
+    <span>abfahrt 24/10 <i>✦</i> story mit @alfonsx_sigmaringen <i>→</i> link per dm <i>→</i> 3 challenges <i>→</i> gewinnen <i>✦</i></span>
+    <span>abfahrt 24/10 <i>✦</i> story mit @alfonsx_sigmaringen <i>→</i> link per dm <i>→</i> 3 challenges <i>→</i> gewinnen <i>✦</i></span>
+  </div>
+</div>
+
+<main>
+<!-- ============ OVERVIEW ============ -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Der Plan</span>
+    <h2 style="margin-top:18px">drei wellen.</h2>
+    <nav class="tl" aria-label="Die drei Phasen">
+      <a href="#vorher">
+        <span class="when">5. – 22. Oktober</span>
+        <h3>vorher</h3>
+        <p>6 Reels: „Kommentiere ABFAHRT“ → Link zum Gewinnspiel per DM.</p>
+        <span class="goal">→ Kommentare &amp; Anmeldungen</span>
+      </a>
+      <a href="#nacht" class="now">
+        <span class="when">24. Oktober</span>
+        <h3>abfahrt</h3>
+        <p>3 Challenges im Club, Story-Reposts, Verlosung in der Nacht.</p>
+        <span class="goal">→ Storys mit Markierung &amp; Reposts</span>
+      </a>
+      <a href="#danach">
+        <span class="when">25. – 28. Oktober</span>
+        <h3>danach</h3>
+        <p>„Kommentiere FOTOS“ → alle Bilder per DM.</p>
+        <span class="goal">→ zweite Kommentarwelle</span>
+      </a>
+    </nav>
+  </div>
+</section>
+
+<!-- ============ PHASE 1 ============ -->
+<section id="vorher">
+  <div class="wrap">
+    <div class="phase-head">
+      <span class="phase-tag">Welle 1 · vorher</span>
+      <h2>kommentiere „abfahrt“.</h2>
+      <p class="lede">2 Reels pro Woche. Wer kommentiert, bekommt <strong>automatisch eine DM</strong> mit dem Link.</p>
+    </div>
+
+    <div class="sched" role="list" aria-label="Posting-Plan">
+      <div role="listitem"><span class="w">Mo</span><span class="d">5.10.</span><span class="t">Teaser</span></div>
+      <div role="listitem"><span class="w">Do</span><span class="d">8.10.</span><span class="t">Gewinn</span></div>
+      <div role="listitem"><span class="w">Mo</span><span class="d">12.10.</span><span class="t">KI-Charaktere</span></div>
+      <div role="listitem"><span class="w">Do</span><span class="d">15.10.</span><span class="t">Line-up / DJ</span></div>
+      <div role="listitem"><span class="w">Mo</span><span class="d">19.10.</span><span class="t">Noch 5 Tage</span></div>
+      <div role="listitem"><span class="w">Do</span><span class="d">22.10.</span><span class="t">Letzter Aufruf</span></div>
+    </div>
+
+    <div class="phones">
+      <div class="step">
+        <span class="cap"><b>A</b> · kommentieren</span>
+        <div class="phone"><div class="screen">
+          <div class="ig-top"><img src="logo.png" alt=""><div><b>alfonsx_sigmaringen</b><small>Reel</small></div></div>
+          <div class="post-img">abfahrt</div>
+          <div class="muted">Kommentiere <b style="color:var(--bone)">ABFAHRT</b> für den Gewinnspiel-Link 🔥</div>
+          <div class="cmt"><b>lena.mrz</b><span class="kw">ABFAHRT</span></div>
+          <div class="cmt"><b>tobi_k</b><span class="kw">ABFAHRT</span><span>bin dabei</span></div>
+          <div class="cmt"><b>sarah.d</b><span class="kw">ABFAHRT</span></div>
+        </div></div>
+      </div>
+      <div class="step">
+        <span class="cap"><b>B</b> · automatische DM</span>
+        <div class="phone"><div class="screen">
+          <div class="ig-top"><img src="logo.png" alt=""><div><b>alfonsx_sigmaringen</b><small>Nachricht</small></div></div>
+          <div class="bubble">Hey 👋 Hier dein Link zum Gewinnspiel für den 24.10.:</div>
+          <div class="linkcard"><b>Abfahrt · 24/10 Gewinnspiel</b><span>alfonsx.party/join</span></div>
+          <div class="bubble">Wir sehen uns am 24. 🖤</div>
+        </div></div>
+      </div>
+      <div class="step">
+        <span class="cap"><b>C</b> · anmelden + KI-Charakter</span>
+        <div class="phone"><div class="screen">
+          <div class="field"><small>Spaßname</small>Nachtfalke</div>
+          <div class="field"><small>Instagram</small>@lena.mrz</div>
+          <div class="field"><small>Dein Song heute</small>Mr. Brightside</div>
+          <div class="char">
+            <span class="r">Dein Charakter</span>
+            <span class="n">der nachtfalke</span>
+            <p>Superkraft: taucht auf, wenn der Bass droppt. Schwäche: „nur noch ein Lied“.</p>
+          </div>
+        </div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PHASE 2 ============ -->
+<section id="nacht" style="background:linear-gradient(180deg,var(--night) 0%,#1a0806 40%,var(--night) 100%)">
+  <div class="wrap">
+    <div class="phase-head">
+      <span class="phase-tag">Welle 2 · 24.10.</span>
+      <h2>drei challenges. eine nacht.</h2>
+      <p class="lede">3 Stationen mit NFC/QR. <strong>Alle 3 geschafft = im Lostopf.</strong></p>
+    </div>
+
+    <div class="chal">
+      <article>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 20c.7-3.4 3-5 5.5-5s4.8 1.6 5.5 5M10.5 20c.7-3.4 3-5 5.5-5s4.8 1.6 5.5 5"/></svg></div>
+        <span class="chip">Challenge 1</span>
+        <h3>random-foto</h3>
+        <p class="task">Foto mit einer fremden Person → Story mit <span class="handle">@alfonsx_sigmaringen</span>.</p>
+        <div class="demo" data-demo="photo" data-key="random">
+          <span class="demo-tag">Live-Demo · am Handy testen</span>
+          <label class="btn red demo-btn" for="file-random">1 · Foto aufnehmen</label>
+          <input id="file-random" class="d-file" type="file" accept="image/*" capture="environment" hidden>
+          <img class="d-preview" alt="Dein Foto mit Challenge-Rahmen" hidden>
+          <button type="button" class="btn demo-btn d-share" hidden>2 · In Story teilen</button>
+          <p class="demo-status" aria-live="polite">Foto machen → Rahmen kommt automatisch.</p>
+        </div>
+      </article>
+      <article>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg></div>
+        <span class="chip">Challenge 2</span>
+        <h3>vibe-check</h3>
+        <p class="task">Sterne + ein Satz → Live-Stimmung in der App.</p>
+        <div class="demo" data-demo="vibe">
+          <span class="demo-tag">Live-Demo · am Handy testen</span>
+          <div class="stars" role="radiogroup" aria-label="Wie ist dein Vibe?">
+            <button type="button" role="radio" aria-checked="false" aria-label="1 Stern" data-v="1">★</button>
+            <button type="button" role="radio" aria-checked="false" aria-label="2 Sterne" data-v="2">★</button>
+            <button type="button" role="radio" aria-checked="false" aria-label="3 Sterne" data-v="3">★</button>
+            <button type="button" role="radio" aria-checked="false" aria-label="4 Sterne" data-v="4">★</button>
+            <button type="button" role="radio" aria-checked="false" aria-label="5 Sterne" data-v="5">★</button>
+          </div>
+          <label class="sr" for="vibe-text">Dein Vibe in einem Satz</label>
+          <textarea id="vibe-text" class="vibe-text" rows="2" maxlength="80" placeholder="Dein Vibe in einem Satz …"></textarea>
+          <button type="button" class="btn red demo-btn v-send">1 · Vibe abschicken</button>
+          <img class="d-preview" alt="Deine Vibe-Karte" hidden>
+          <button type="button" class="btn demo-btn d-share" hidden>2 · In Story teilen</button>
+          <p class="demo-status" aria-live="polite">Sterne tippen, Satz schreiben, abschicken.</p>
+        </div>
+      </article>
+      <article>
+        <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="4.5" r="2"/><path d="M12 7v7M12 9l-6-3M12 9l5 -4M12 14l-4 6M12 14l4 6"/></svg></div>
+        <span class="chip">Challenge 3</span>
+        <h3>best pose</h3>
+        <p class="task">Beste Pose → Umfrage in unserer Story → Extra-Preis.</p>
+        <div class="demo" data-demo="photo" data-key="pose">
+          <span class="demo-tag">Live-Demo · am Handy testen</span>
+          <label class="btn red demo-btn" for="file-pose">1 · Foto aufnehmen</label>
+          <input id="file-pose" class="d-file" type="file" accept="image/*" capture="environment" hidden>
+          <img class="d-preview" alt="Dein Foto mit Challenge-Rahmen" hidden>
+          <button type="button" class="btn demo-btn d-share" hidden>2 · In Story teilen</button>
+          <p class="demo-status" aria-live="polite">Pose machen → Rahmen kommt automatisch.</p>
+        </div>
+      </article>
+    </div>
+
+    <div class="rule">
+      <b>kein login. keine punkte. 3 von 3.</b>
+    </div>
+
+    <!-- Story statt Leinwand -->
+    <div class="stage">
+      <span class="eyebrow">Keine Leinwand nötig</span>
+      <h2 style="margin-top:14px;font-size:clamp(34px,5vw,60px)">unsere story ist die leinwand.</h2>
+      <div class="story-split">
+        <ul class="plain">
+          <li><b>Beste Storys</b> reposten wir in unsere Story</li>
+          <li><b>Best Pose:</b> Umfrage in unserer Story, Follower stimmen ab</li>
+          <li><b>Mitternacht:</b> DJ ruft zur Story-Welle auf</li>
+          <li><b>Gewinner</b> verkündet der DJ, dann kommt er in die Story</li>
+        </ul>
+        <div class="phone"><div class="screen">
+          <div class="ig-top"><img src="logo.png" alt=""><div><b>alfonsx_sigmaringen</b><small>Story</small></div></div>
+          <div class="post-img" style="aspect-ratio:4/5">#12</div>
+          <div class="poll" role="img" aria-label="Beispiel-Umfrage: Beste Pose, 64 Prozent für Nummer 12, 36 Prozent für Nummer 7">
+            <b>beste pose?</b>
+            <div class="opt"><i style="width:64%"></i><span>#12 🔥</span><span>64 %</span></div>
+            <div class="opt"><i style="width:36%"></i><span>#7 💃</span><span>36 %</span></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="photos">
+        <span class="eyebrow">Fotos &amp; Datenschutz</span>
+        <h3 style="margin-top:12px">fotos bleiben auf dem handy.</h3>
+        <div class="photo-paths">
+          <div><span class="chip">Keine Uploads</span><b>Nichts wird gespeichert.</b></div>
+          <div class="hl"><span class="chip">Keine KI</span><b>Kein Foto geht an eine KI.</b></div>
+          <div><span class="chip">Wenig Daten</span><b>Spaßname, Handle, Häkchen.</b></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Direkt-Poster -->
+    <div style="margin-top:88px">
+      <span class="eyebrow">Wer ohne App postet</span>
+      <h2 style="margin-top:14px;font-size:clamp(34px,5vw,60px)">niemand geht verloren.</h2>
+      <div class="flow">
+        <div><span class="who">Gast</span><b>postet story mit markierung</b></div>
+        <div><span class="who">Automatisch</span><b>bekommt dm mit link</b></div>
+        <div><span class="who">Gast</span><b>meldet sich an</b></div>
+        <div><span class="who">Gast</span><b>macht die challenges</b></div>
+      </div>
+    </div>
+
+    <!-- Verlosung -->
+    <div class="draw">
+      <div>
+        <span class="eyebrow">Die Verlosung</span>
+        <h2 style="margin-top:14px;font-size:clamp(34px,5vw,60px)">live, in derselben nacht.</h2>
+        <ol class="check" style="margin-top:28px">
+          <li class="on"><span class="s">✓</span><div><b>Angemeldet</b></div></li>
+          <li class="on"><span class="s">✓</span><div><b>3 von 3 Challenges</b></div></li>
+          <li class="on"><span class="s">✓</span><div><b>Ziehung um 02:00, DJ verkündet</b></div></li>
+          <li><span class="s">?</span><div><b>Team prüft die Story</b><small>Keine Story mit Markierung → neu ziehen.</small></div></li>
+        </ol>
+      </div>
+      <div class="phone" style="justify-self:center;align-self:center">
+        <div class="screen progress">
+          <div class="ig-top"><img src="logo.png" alt=""><div><b>der nachtfalke</b><small>deine abfahrt-mission</small></div></div>
+          <div class="row done"><span>Random-Foto</span><span class="ok">✓ erledigt</span></div>
+          <div class="row done"><span>Vibe-Check</span><span class="ok">✓ erledigt</span></div>
+          <div class="row"><span>Best Pose</span><span class="todo">offen</span></div>
+          <div class="char" style="margin-top:auto">
+            <span class="r">noch 1 challenge</span>
+            <span class="n">fast im lostopf.</span>
+            <p>Ziehung um 02:00 Uhr. Der DJ verkündet den Gewinner.</p>
+          </div>
+          <div class="btn red">Best Pose starten</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gewinner auslosen -->
+    <div style="margin-top:80px">
+      <span class="eyebrow">Gewinner auslosen</span>
+      <h3 style="margin-top:12px">so läuft die ziehung.</h3>
+      <div class="flow">
+        <div><span class="who">02:00 · Team</span><b>drückt „auslosen“</b></div>
+        <div><span class="who">Zufall</span><b>zieht einen spaßnamen</b></div>
+        <div><span class="who">Team</span><b>prüft die story</b></div>
+        <div><span class="who">DJ</span><b>ruft den gewinner auf</b></div>
+      </div>
+      <div class="duo">
+        <div class="step">
+          <span class="cap"><b>Team</b> · Admin-Ansicht</span>
+          <div class="phone"><div class="screen">
+            <div class="ig-top"><img src="logo.png" alt=""><div><b>abfahrt · admin</b><small>Verlosung</small></div></div>
+            <div class="pot"><span class="n">87</span><small>im Lostopf · 3/3</small></div>
+            <div class="char">
+              <span class="r">Gezogen · 02:00</span>
+              <span class="n">der nachtfalke</span>
+              <p>@lena.mrz</p>
+            </div>
+            <div class="muted">Story mit @alfonsx_sigmaringen im DM-Postfach gefunden?</div>
+            <div class="btn red">✓ Story gefunden</div>
+            <div class="btn ghost">↻ Neu ziehen</div>
+          </div></div>
+        </div>
+        <div class="step">
+          <span class="cap"><b>Gewinner</b> · sein Handy</span>
+          <div class="phone"><div class="screen">
+            <div class="ig-top"><img src="logo.png" alt=""><div><b>der nachtfalke</b><small>deine abfahrt-mission</small></div></div>
+            <div class="win">
+              <span class="r" style="font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase">Abfahrt · 24/10</span>
+              <span class="n">gewonnen.</span>
+              <p>Komm zum DJ-Pult und zeig diesen Screen.</p>
+              <span class="live-code">AB-2410-7F · live</span>
+            </div>
+          </div></div>
+        </div>
+      </div>
+      <p class="note"><b>Keine Story oder nicht da?</b> Sofort neu ziehen.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PHASE 3 ============ -->
+<section id="danach">
+  <div class="wrap after">
+    <div style="display:grid;gap:22px">
+      <span class="phase-tag">Welle 3 · danach</span>
+      <h2>kommentiere „fotos“.</h2>
+      <p class="lede">Aftermovie-Reel am 25.10. Wer <strong>FOTOS</strong> kommentiert, bekommt alle Bilder per DM.</p>
+    </div>
+    <div class="phone"><div class="screen">
+      <div class="ig-top"><img src="logo.png" alt=""><div><b>alfonsx_sigmaringen</b><small>Reel · Aftermovie</small></div></div>
+      <div class="post-img" style="aspect-ratio:4/3">danke.</div>
+      <div class="muted">Kommentiere <b style="color:var(--bone)">FOTOS</b> für alle Bilder 📸</div>
+      <div class="cmt"><b>tobi_k</b><span class="kw">FOTOS</span></div>
+      <div class="cmt"><b>lena.mrz</b><span class="kw">FOTOS</span><span>beste nacht 😭</span></div>
+      <div class="cmt"><b>jule.ks</b><span class="kw">FOTOS</span></div>
+    </div></div>
+  </div>
+</section>
+
+<!-- ============ NEEDS / ROADMAP ============ -->
+<section>
+  <div class="wrap">
+    <span class="eyebrow">Zeitplan</span>
+    <h2 style="margin-top:18px">bis zur abfahrt.</h2>
+
+    <div class="road">
+      <div><span class="d">bis 30.09.</span><p><b>Instagram-Automation testen</b></p></div>
+      <div><span class="d">bis 04.10.</span><p><b>Anmeldung live</b></p></div>
+      <div><span class="d">05.10.</span><p><b>Erstes Reel</b></p></div>
+      <div><span class="d">bis 18.10.</span><p><b>Challenges fertig</b></p></div>
+      <div><span class="d">21.10.</span><p><b>Generalprobe im Club</b></p></div>
+      <div class="big"><span class="d">24.10.</span><p><b>abfahrt.</b></p></div>
+      <div><span class="d">25.10.</span><p><b>Aftermovie + „FOTOS“</b></p></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="big">abfahrt<span>.</span><br>24<span>/</span>10.</div>
+    <p>alfons x · Sigmaringen</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var HANDLE='@alfonsx_sigmaringen';
+  var DEMO_NAME='der nachtfalke';
+  var CH={
+    random:{n:1,name:'random-foto',file:'abfahrt-challenge1-random-foto.jpg',
+      yes:'Kommt nach Freigabe auf die Leinwand. Gelöscht am <b>25.10., 10 Uhr</b>.',
+      no:'Ohne Häkchen: nur Story, kein Upload.',
+      after:' <br><i>Demo: nichts hochgeladen.</i>'},
+    vibe:{n:2,name:'vibe-check',file:'abfahrt-challenge2-vibe-check.jpg'},
+    pose:{n:3,name:'best pose',file:'abfahrt-challenge3-best-pose.jpg',
+      yes:'Kommt nach Freigabe ins Voting. Gelöscht am <b>25.10., 10 Uhr</b>.',
+      no:'Ohne Häkchen: nur Story, kein Voting.',
+      after:' <br><i>Demo: nichts hochgeladen.</i>'}
+  };
+  var canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1920;
+  var logo=new Image();logo.src='logo.png';
+  var fontsReady=null;
+  function fonts(){
+    if(!fontsReady){fontsReady=Promise.all(['800 76px Poppins','700 58px Poppins','600 40px "IBM Plex Mono"','700 60px Figtree','600 44px Figtree'].map(function(f){return document.fonts.load(f).catch(function(){})}));}
+    return fontsReady;
+  }
+  function loadImage(src){return new Promise(function(res,rej){var i=new Image();i.onload=function(){res(i)};i.onerror=rej;i.src=src;});}
+  function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+  function wrap(ctx,text,maxW){
+    var words=text.split(/\s+/),lines=[],line='';
+    words.forEach(function(w){var t=line?line+' '+w:w;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=w;}else line=t;});
+    if(line)lines.push(line);return lines;
+  }
+  function esc(t){return t.replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]});}
+
+  // gemeinsamer Rahmen: Kopf, Challenge-Badge, "abfahrt." + Datum, Handle
+  function frame(ctx,ch){
+    var W=1080,H=1920;
+    var g=ctx.createLinearGradient(0,0,0,460);
+    g.addColorStop(0,'rgba(13,7,6,.88)');g.addColorStop(1,'rgba(13,7,6,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,460);
+    g=ctx.createLinearGradient(0,H-760,0,H);
+    g.addColorStop(0,'rgba(126,26,18,0)');g.addColorStop(.45,'rgba(74,14,9,.75)');g.addColorStop(1,'rgba(13,7,6,.97)');
+    ctx.fillStyle=g;ctx.fillRect(0,H-760,W,760);
+    ctx.strokeStyle='#E5402A';ctx.lineWidth=14;ctx.strokeRect(34,34,W-68,H-68);
+    if(logo.complete&&logo.naturalWidth){ctx.save();roundRect(ctx,80,90,130,130,14);ctx.clip();ctx.drawImage(logo,80,90,130,130);ctx.restore();}
+    ctx.fillStyle='#F3EAE6';ctx.textBaseline='middle';
+    ctx.font='800 76px Poppins, Arial, sans-serif';ctx.fillText('alfons x',240,155);
+    // Challenge-Badge
+    var label=('challenge '+ch.n+' · '+ch.name).toUpperCase();
+    ctx.font='600 40px "IBM Plex Mono", Consolas, monospace';
+    var bw=ctx.measureText(label).width+64;
+    ctx.fillStyle='#E5402A';roundRect(ctx,80,262,bw,80,40);ctx.fill();
+    ctx.fillStyle='#FFFFFF';ctx.fillText(label,112,303);
+    // Partyname + Datum
+    ctx.textBaseline='alphabetic';
+    ctx.font='800 200px Poppins, Arial, sans-serif';
+    ctx.fillStyle='#F3EAE6';ctx.fillText('abfahrt',78,H-420);
+    var wA=ctx.measureText('abfahrt').width;
+    ctx.fillStyle='#E5402A';ctx.fillText('.',78+wA,H-420);
+    ctx.font='800 104px Poppins, Arial, sans-serif';
+    var x=86,y=H-270;
+    ['24','/','10','/','2026'].forEach(function(p){ctx.fillStyle=p==='/'?'#E5402A':'#F3EAE6';ctx.fillText(p,x,y);x+=ctx.measureText(p).width;});
+    // Handle-Pille
+    ctx.font='700 58px Poppins, Arial, sans-serif';
+    var hw=ctx.measureText(HANDLE).width+80;
+    ctx.fillStyle='#E5402A';roundRect(ctx,84,H-210,hw,100,50);ctx.fill();
+    ctx.fillStyle='#FFFFFF';ctx.textBaseline='middle';ctx.fillText(HANDLE,124,H-158);
+  }
+
+  function drawPhoto(photo,ch){
+    var W=1080,H=1920,ctx=canvas.getContext('2d');
+    ctx.fillStyle='#0D0706';ctx.fillRect(0,0,W,H);
+    var s=Math.max(W/photo.width,H/photo.height),pw=photo.width*s,ph=photo.height*s;
+    ctx.drawImage(photo,(W-pw)/2,(H-ph)/2,pw,ph);
+    frame(ctx,ch);
+  }
+
+  function drawVibe(stars,text,ch){
+    var W=1080,H=1920,ctx=canvas.getContext('2d');
+    var g=ctx.createLinearGradient(0,0,W,H);
+    g.addColorStop(0,'#7E1A12');g.addColorStop(.6,'#3a0b07');g.addColorStop(1,'#0D0706');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    frame(ctx,ch);
+    // Sterne
+    ctx.textBaseline='alphabetic';ctx.font='700 130px Arial, sans-serif';
+    for(var i=0;i<5;i++){ctx.fillStyle=i<stars?'#E5402A':'rgba(243,234,230,.22)';ctx.fillText('★',90+i*150,640);}
+    ctx.font='600 44px "IBM Plex Mono", Consolas, monospace';ctx.fillStyle='rgba(243,234,230,.8)';
+    ctx.fillText('MEIN VIBE GERADE: '+stars+'/5',92,730);
+    // Zitat
+    ctx.font='700 78px Figtree, Arial, sans-serif';ctx.fillStyle='#F3EAE6';
+    var lines=wrap(ctx,'„'+text+'“',880).slice(0,5);
+    lines.forEach(function(l,i){ctx.fillText(l,90,880+i*98);});
+    ctx.font='600 44px Figtree, Arial, sans-serif';ctx.fillStyle='rgba(243,234,230,.7)';
+    ctx.fillText('— '+DEMO_NAME,92,880+lines.length*98+30);
+  }
+
+  async function toFile(name){
+    var blob=await new Promise(function(r){canvas.toBlob(r,'image/jpeg',.9)});
+    return {file:new File([blob],name,{type:'image/jpeg'}),url:URL.createObjectURL(blob)};
+  }
+
+  function wireShare(root,getFile,extra){
+    var btn=root.querySelector('.d-share'),status=root.querySelector('.demo-status');
+    btn.addEventListener('click',async function(){
+      var file=getFile();if(!file)return;
+      var fallback='Bild gedrückt halten → <b>„Bild sichern“</b> → in Instagram als Story posten.';
+      if(!navigator.share||!navigator.canShare||!navigator.canShare({files:[file]})){
+        status.innerHTML='Direktes Teilen ist hier blockiert. '+fallback+extra();return;
+      }
+      try{await navigator.share({files:[file]});status.innerHTML='Geteilt ✓ Jetzt in Instagram <b>'+HANDLE+'</b> markieren.'+extra();}
+      catch(e){
+        if(e&&e.name==='AbortError')status.innerHTML='Teilen abgebrochen. Du kannst es nochmal versuchen.';
+        else status.innerHTML='Teilen blockiert ('+(e&&e.name||'Fehler')+'). '+fallback;
+      }
+    });
+  }
+
+  // Foto-Challenges (Random-Foto, Best Pose)
+  document.querySelectorAll('[data-demo="photo"]').forEach(function(root){
+    var ch=CH[root.dataset.key];
+    var input=root.querySelector('.d-file'),preview=root.querySelector('.d-preview'),
+        share=root.querySelector('.d-share'),status=root.querySelector('.demo-status'),
+        consent=root.querySelector('.d-consent'),consentWrap=root.querySelector('.d-consent-wrap');
+    var file=null;
+    input.addEventListener('change',async function(){
+      var f=input.files&&input.files[0];if(!f)return;
+      status.textContent='Rahmen wird gesetzt …';
+      try{
+        await fonts();
+        var u=URL.createObjectURL(f),photo=await loadImage(u);
+        drawPhoto(photo,ch);URL.revokeObjectURL(u);
+        var out=await toFile(ch.file);file=out.file;preview.src=out.url;
+        preview.hidden=false;share.hidden=false;if(consentWrap)consentWrap.hidden=false;
+        status.innerHTML='Fertig → <b>„In Story teilen“</b> → Instagram → Story.';
+      }catch(e){status.textContent='Das Foto konnte nicht geladen werden. Bitte ein anderes versuchen.';}
+    });
+    if(consent)consent.addEventListener('change',function(){status.innerHTML=consent.checked?ch.yes:ch.no;});
+    wireShare(root,function(){return file},function(){return consent&&consent.checked?ch.after:''});
+  });
+
+  // Vibe-Check
+  document.querySelectorAll('[data-demo="vibe"]').forEach(function(root){
+    var ch=CH.vibe,stars=0,file=null;
+    var btns=root.querySelectorAll('.stars button'),text=root.querySelector('.vibe-text'),
+        send=root.querySelector('.v-send'),preview=root.querySelector('.d-preview'),
+        share=root.querySelector('.d-share'),status=root.querySelector('.demo-status');
+    btns.forEach(function(b){
+      b.addEventListener('click',function(){
+        stars=+b.dataset.v;
+        btns.forEach(function(o){o.classList.toggle('on',+o.dataset.v<=stars);o.setAttribute('aria-checked',+o.dataset.v===stars?'true':'false');});
+      });
+    });
+    send.addEventListener('click',async function(){
+      var t=text.value.trim();
+      if(!stars){status.textContent='Bitte zuerst Sterne vergeben.';return;}
+      if(!t){status.textContent='Schreib noch einen Satz zu deinem Vibe.';text.focus();return;}
+      await fonts();
+      drawVibe(stars,t,ch);
+      var out=await toFile(ch.file);file=out.file;preview.src=out.url;
+      preview.hidden=false;share.hidden=false;
+      status.innerHTML='Abgeschickt ✓ Zählt zur Live-Stimmung. <i>(Demo: nichts gesendet.)</i>';
+    });
+    wireShare(root,function(){return file},function(){return ''});
+  });
+})();
+</script>
+</body>
+</html>
