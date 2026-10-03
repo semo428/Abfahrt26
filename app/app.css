@@ -171,6 +171,16 @@ button.task:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .drawn{border:1px solid var(--signal);border-radius:16px;padding:18px;background:rgba(229,64,42,.12);display:grid;gap:6px;text-align:center}
 .drawn b{font-family:var(--display);font-weight:800;font-size:26px;text-transform:lowercase}
 
+/* Daten löschen */
+.reset{display:grid;gap:12px;justify-items:center;padding-top:6px}
+.linkbtn{background:none;border:0;color:var(--ash-dim);font:inherit;font-size:13.5px;text-decoration:underline;cursor:pointer;padding:6px}
+.linkbtn:focus-visible{outline:2px solid var(--signal);outline-offset:2px;border-radius:6px}
+.confirm{width:100%;border:1px solid rgba(229,64,42,.5);border-radius:16px;padding:16px;display:grid;gap:10px;background:rgba(229,64,42,.08)}
+.confirm b{font-family:var(--display);font-weight:800;font-size:20px;text-transform:lowercase}
+.confirm p{color:var(--ash);font-size:14.5px}
+.confirm p b{font-family:var(--body);font-size:inherit;text-transform:none;color:var(--bone)}
+.btn.danger{background:#b3261e;color:#fff}
+
 /* Fuß */
 .foot{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;font-size:12.5px;color:var(--ash-dim);padding-top:8px}
 .foot a{color:var(--ash)}

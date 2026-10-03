@@ -69,6 +69,15 @@
         recent: vibes.slice(-3).reverse().map(function(v){ return { fun_name: (byId[v.player_id]||{}).fun_name || '?', stars: v.stars, text: v.text }; }) });
     },
     // Admin
+    deleteMe: function(){
+      var id = lsGet('ab_me', null);
+      var p = lsGet('ab_players', []).filter(function(x){ return x.id === id; })[0];
+      if (p && (p.status === 'drawn' || p.status === 'won')) return Promise.reject(new Error('Nach der Ziehung kannst du deine Daten nicht mehr selbst löschen. Sprich das Team an.'));
+      lsSet('ab_players', lsGet('ab_players', []).filter(function(x){ return x.id !== id; }));
+      lsSet('ab_vibes', lsGet('ab_vibes', []).filter(function(v){ return v.player_id !== id; }));
+      try{ localStorage.removeItem('ab_me'); }catch(e){}
+      return Promise.resolve();
+    },
     adminLogin: function(){ return Promise.resolve(); },
     adminIsLoggedIn: function(){ return Promise.resolve(true); },
     adminOverview: function(){
@@ -117,6 +126,7 @@
     if (/blocked_text/i.test(m)) return 'Bitte ohne Beleidigungen – formulier deinen Satz neu.';
     if (/not_admin/i.test(m)) return 'Kein Admin-Zugang für dieses Konto.';
     if (/empty_pot/i.test(m)) return 'Niemand im Lostopf (3/3 erledigt).';
+    if (/locked_after_draw/i.test(m)) return 'Nach der Ziehung kannst du deine Daten nicht mehr selbst löschen. Sprich das Team an.';
     if (/Failed to fetch|NetworkError/i.test(m)) return 'Keine Verbindung. Bitte Internet prüfen und nochmal versuchen.';
     return m;
   }
@@ -146,6 +156,10 @@
     complete: async function(key){ return unwrap(await client().rpc('complete_challenge', { p_key: key })); },
     submitVibe: async function(stars, text){ unwrap(await client().rpc('submit_vibe', { p_stars: stars, p_text: text })); return live.me(); },
     stats: async function(){ return unwrap(await client().rpc('public_stats')); },
+    deleteMe: async function(){
+      unwrap(await client().rpc('delete_me'));          // löscht Spieler, Vibes und das anonyme Konto in der Datenbank
+      await client().auth.signOut({ scope: 'local' });  // Sitzung auf dem Handy entfernen; beim Neustart gibt es ein neues Konto
+    },
     adminLogin: async function(email, pw){ unwrap(await client().auth.signInWithPassword({ email: email, password: pw })); },
     adminIsLoggedIn: async function(){
       var u = (await client().auth.getUser()).data.user; if (!u || u.is_anonymous) return false;

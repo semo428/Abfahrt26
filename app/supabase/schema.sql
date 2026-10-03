@@ -95,6 +95,17 @@ language sql stable security definer set search_path = public as $$
   );
 $$;
 
+-- Eigene Daten komplett löschen (Spieler + Vibes + anonymes Konto). Nach der Ziehung gesperrt.
+create or replace function public.delete_me() returns void
+language plpgsql security definer set search_path = public, auth as $$
+begin
+  if exists (select 1 from public.players where id = auth.uid() and status in ('drawn','won')) then
+    raise exception 'locked_after_draw';
+  end if;
+  delete from public.players where id = auth.uid();          -- vibes löschen sich per cascade mit
+  delete from auth.users where id = auth.uid() and is_anonymous;
+end $$;
+
 -- ---------- Admin ----------
 create or replace function public.admin_overview() returns json
 language plpgsql stable security definer set search_path = public as $$
@@ -142,6 +153,8 @@ begin
 end $$;
 
 -- ---------- Rechte ----------
+revoke all on function public.delete_me() from public, anon;
+grant execute on function public.delete_me() to authenticated;
 revoke all on function public.complete_challenge(text), public.submit_vibe(int, text), public.public_stats(),
   public.is_admin(), public.admin_overview(), public.admin_draw(), public.admin_confirm(uuid), public.admin_reject(uuid) from public, anon;
 grant execute on function public.complete_challenge(text), public.submit_vibe(int, text), public.public_stats(),

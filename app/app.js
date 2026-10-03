@@ -54,6 +54,13 @@
   }
   if (!prefill){ try{ prefill = sessionStorage.getItem('ab_u') || ''; }catch(e){} }
   function takeStation(){ var s = null; try{ s = sessionStorage.getItem('ab_station'); sessionStorage.removeItem('ab_station'); }catch(e){} return CH[s] ? s : null; }
+  function pendingList(){ try{ return JSON.parse(localStorage.getItem('ab_pending') || '[]'); }catch(e){ return []; } }
+  function setPending(l){ try{ localStorage.setItem('ab_pending', JSON.stringify(l)); }catch(e){} }
+  async function flushPending(){
+    var l = pendingList(); if (!l.length || !me) return;
+    for (var i = 0; i < l.length; i++){ try{ if (!me[l[i] + '_at']) me = await S.complete(l[i]) || me; }catch(e){ return; } }
+    setPending([]);
+  }
   function peekStation(){ try{ var s = sessionStorage.getItem('ab_station'); return CH[s] ? s : null; }catch(e){ return null; } }
 
   async function boot(){
@@ -61,6 +68,7 @@
     try{
       await S.init();
       me = await S.me();
+      await flushPending();
     }catch(e){
       render(top() + '<div class="view"><h2>keine verbindung.</h2><p class="lede">' + esc(e.message) + '</p><button class="btn red" id="retry">Nochmal versuchen</button></div>');
       $('#retry').onclick = boot; return;
@@ -141,7 +149,12 @@
       '<div class="hint"><span aria-hidden="true">📌</span><span>Storys zählen nur mit Markierung <b>' + esc(HANDLE) + '</b>. Das Team prüft das bei der Ziehung.</span></div>' +
       '<div class="vibe-live" id="vibe-live" hidden><span class="eyebrow">Live-Stimmung</span><div class="avg"><span class="n" id="v-avg"></span><span class="muted" id="v-count"></span></div><ul id="v-list"></ul></div>' +
       '<div class="counter" id="counter" hidden><span class="n" id="count">0</span><span>sind heute dabei</span></div>' +
+      (me.status === 'drawn' ? '' :
+        '<div class="reset"><button class="linkbtn" id="reset">Daten löschen &amp; neu anmelden</button>' +
+        '<div class="confirm" id="reset-box" hidden><b>wirklich löschen?</b><p>Dein Spaßname, Charakter, Instagram-Name und alle erledigten Challenges werden <b>komplett gelöscht</b>. Danach kannst du dich neu anmelden.</p>' +
+        errorBox('reset-err') + '<div class="btn-row"><button class="btn danger" id="reset-yes">Ja, alles löschen</button><button class="btn ghost" id="reset-no">Abbrechen</button></div></div></div>') +
       '</section>' + foot());
+    wireReset();
     root.querySelectorAll('button.task').forEach(function(b){ b.addEventListener('click', function(){ viewChallenge(b.dataset.k); }); });
     refreshStats();
     pollTimer = setInterval(async function(){
@@ -154,6 +167,20 @@
         refreshStats();
       }catch(e){}
     }, 20000);
+  }
+  function wireReset(){
+    if (!$('#reset')) return;
+    $('#reset').onclick = function(){ $('#reset-box').hidden = false; this.hidden = true; $('#reset-box').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+    $('#reset-no').onclick = function(){ $('#reset-box').hidden = true; $('#reset').hidden = false; };
+    $('#reset-yes').onclick = async function(){
+      busy(this, true, 'Wird gelöscht …');
+      try{
+        await S.deleteMe();
+        ['ab_pending','ab_unlocked'].forEach(function(k){ try{ localStorage.removeItem(k); }catch(e){} });
+        try{ sessionStorage.clear(); }catch(e){}
+        me = null; prefill = ''; boot();
+      }catch(e){ showError('reset-err', e.message); busy(this, false, 'Ja, alles löschen'); }
+    };
   }
   async function refreshStats(){
     try{
@@ -181,7 +208,9 @@
     if (key === 'vibe') wireVibe(); else wirePhoto(key);
   }
   async function markDone(key){
+    var l = pendingList(); if (l.indexOf(key) < 0){ l.push(key); setPending(l); }
     me = await S.complete(key) || me;
+    setPending(pendingList().filter(function(k){ return k !== key; }));
     var box = $('#done-box'); if (box){ box.hidden = false; box.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     var n = doneCount(me);
     if (n === 3 && box) box.querySelector('.status').textContent = 'Alle 3 geschafft – du bist im Lostopf! Ziehung um ' + C.drawTime + ' Uhr.';
@@ -194,7 +223,6 @@
       '<div class="hint" id="tag-hint" hidden><span aria-hidden="true">👉</span><span>Gleich in Instagram: <b>' + esc(HANDLE) + '</b> markieren! Der Name ist schon kopiert – einfach einfügen.</span></div>' +
       '<button class="btn" id="share" hidden>In Story teilen</button>' +
       '<p class="status" id="status" aria-live="polite">Der Abfahrt-Rahmen kommt automatisch aufs Foto. Das Foto bleibt auf deinem Handy.</p>' +
-      '<button class="btn red" id="posted" hidden>✓ Story mit ' + esc(HANDLE) + ' ist gepostet</button>' +
       errorBox('ch-err') +
       '<div class="divider">schon direkt in Instagram gepostet?</div>' +
       '<button class="btn ghost" id="already">Ich habe schon eine Story mit ' + esc(HANDLE) + ' gepostet</button>';
@@ -214,18 +242,16 @@
     });
     $('#share').addEventListener('click', async function(){
       if (!file) return;
+      markDone(key).catch(function(e){ showError('ch-err', e.message); });   // nicht abwarten – sonst blockt iOS das Teilen
       var r = await F.share(file);
-      if (r === 'aborted'){ $('#status').textContent = 'Teilen abgebrochen. Du kannst es nochmal versuchen.'; return; }
-      if (r === 'shared') $('#status').innerHTML = 'Super! Poste die Story in Instagram mit <b>' + esc(HANDLE) + '</b> und bestätige dann hier.';
-      else $('#status').innerHTML = 'Direktes Teilen geht hier nicht. <b>Bild gedrückt halten → „Bild sichern“</b> → in Instagram als Story posten, ' + esc(HANDLE) + ' markieren, dann hier bestätigen.';
-      $('#posted').hidden = false;
+      if (r === 'shared' || r === 'aborted') $('#status').innerHTML = 'Challenge abgehakt ✓ Jetzt in Instagram als <b>Story</b> posten und <b>' + esc(HANDLE) + '</b> markieren – sonst zählt sie bei der Ziehung nicht.';
+      else $('#status').innerHTML = 'Challenge abgehakt ✓ Direktes Teilen geht hier nicht: <b>Bild gedrückt halten → „Bild sichern“</b> → in Instagram als Story posten und ' + esc(HANDLE) + ' markieren.';
     });
     async function confirm(btn){
       busy(btn, true);
       try{ await markDone(key); btn.hidden = true; }
       catch(e){ showError('ch-err', e.message); busy(btn, false); }
     }
-    $('#posted').addEventListener('click', function(){ confirm(this); });
     $('#already').addEventListener('click', function(){ confirm(this); });
   }
 
