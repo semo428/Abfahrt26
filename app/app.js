@@ -220,7 +220,7 @@
     return '<label class="btn red" for="cam" id="cam-label">Foto aufnehmen</label>' +
       '<input id="cam" type="file" accept="image/*" capture="environment" hidden>' +
       '<img class="preview" id="preview" alt="Dein Foto mit Abfahrt-Rahmen" hidden>' +
-      '<div class="hint" id="tag-hint" hidden><span aria-hidden="true">👉</span><span>Siehst du das gestrichelte Feld <b>„hier alfons x markieren“</b>? Setz genau dort in Instagram die Erwähnung <b>' + esc(HANDLE) + '</b> drauf. Der Name ist schon kopiert – einfach einfügen.</span></div>' +
+      '<div class="hint" id="tag-hint" hidden><span aria-hidden="true">👉</span><span>Siehst du oben im Bild das gestrichelte Feld <b>„hier alfons x markieren“</b>? Setz genau dort in Instagram die Erwähnung <b>' + esc(HANDLE) + '</b> drauf. Der Name ist schon kopiert – einfach einfügen.</span></div>' +
       '<button class="btn" id="share" hidden>In Story teilen</button>' +
       '<p class="status" id="status" aria-live="polite">Der Abfahrt-Rahmen kommt automatisch aufs Foto. Das Foto bleibt auf deinem Handy.</p>' +
       errorBox('ch-err') +
@@ -244,7 +244,7 @@
       if (!file) return;
       markDone(key).catch(function(e){ showError('ch-err', e.message); });   // nicht abwarten – sonst blockt iOS das Teilen
       var r = await F.share(file);
-      if (r === 'shared' || r === 'aborted') $('#status').innerHTML = 'Challenge abgehakt ✓ Jetzt in Instagram: Erwähnung <b>' + esc(HANDLE) + '</b> auf das Feld „hier alfons x markieren“ setzen und als <b>Story</b> posten – ohne echte Markierung zählt sie bei der Ziehung nicht.';
+      if (r === 'shared' || r === 'aborted') $('#status').innerHTML = 'Challenge abgehakt ✓ Jetzt in Instagram: Erwähnung <b>' + esc(HANDLE) + '</b> auf das Feld „hier alfons x markieren“ oben im Bild setzen und als <b>Story</b> posten – ohne echte Markierung zählt sie bei der Ziehung nicht.';
       else $('#status').innerHTML = 'Challenge abgehakt ✓ Direktes Teilen geht hier nicht: <b>Bild gedrückt halten → „Bild sichern“</b> → in Instagram als Story posten und ' + esc(HANDLE) + ' markieren.';
     });
     async function confirm(btn){
@@ -262,7 +262,7 @@
       errorBox('ch-err') +
       '<button class="btn red" id="send">Vibe abschicken</button>' +
       '<img class="preview" id="preview" alt="Deine Vibe-Karte" hidden>' +
-      '<div class="hint" id="tag-hint" hidden><span aria-hidden="true">👉</span><span>Optional: Teile deine Vibe-Karte als Story – und setz die Erwähnung <b>' + esc(HANDLE) + '</b> auf das Feld <b>„hier alfons x markieren“</b>.</span></div>' +
+      '<div class="hint" id="tag-hint" hidden><span aria-hidden="true">👉</span><span>Optional: Teile deine Vibe-Karte als Story – und setz die Erwähnung <b>' + esc(HANDLE) + '</b> auf das Feld <b>„hier alfons x markieren“</b> oben im Bild.</span></div>' +
       '<button class="btn" id="share" hidden>Vibe-Karte in Story teilen</button>' +
       '<p class="status" id="status" aria-live="polite"></p>';
   }

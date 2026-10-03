@@ -42,41 +42,32 @@
     ctx.fillStyle = '#FFFFFF'; ctx.fillText(label, 112, 303);
     ctx.textBaseline = 'alphabetic';
     ctx.font = '800 200px Poppins, Arial, sans-serif';
-    ctx.fillStyle = '#F3EAE6'; ctx.fillText('abfahrt', 78, H-470);
+    ctx.fillStyle = '#F3EAE6'; ctx.fillText('abfahrt', 78, H-300);
     var wA = ctx.measureText('abfahrt').width;
-    ctx.fillStyle = '#E5402A'; ctx.fillText('.', 78 + wA, H-470);
+    ctx.fillStyle = '#E5402A'; ctx.fillText('.', 78 + wA, H-300);
     ctx.font = '800 104px Poppins, Arial, sans-serif';
     var x = 86, parts = C.eventDate.split('.').filter(Boolean); // ["24","10","2026"]
-    [parts[0], '/', parts[1], '/', parts[2]].forEach(function(p){ ctx.fillStyle = p === '/' ? '#E5402A' : '#F3EAE6'; ctx.fillText(p, x, H-320); x += ctx.measureText(p).width; });
-    tagPlaceholder(ctx);
+    [parts[0], '/', parts[1], '/', parts[2]].forEach(function(p){ ctx.fillStyle = p === '/' ? '#E5402A' : '#F3EAE6'; ctx.fillText(p, x, H-150); x += ctx.measureText(p).width; });
+    tagPlaceholder(ctx, 80, 372);   // klein, direkt unter dem Challenge-Badge
   }
 
   // Platzhalter statt fertigem Handle: hier soll der Gast in Instagram die echte Erwähnung draufsetzen.
   // (Ein ins Bild gedruckter Handle ist KEINE Markierung – deshalb bewusst als leeres Feld gestaltet.)
-  function fit(ctx, text, maxW, size, tpl){
-    do { ctx.font = tpl.replace('{s}', size); size -= 2; } while (ctx.measureText(text).width > maxW && size > 20);
-  }
-  function tagPlaceholder(ctx){
-    var bx = 84, by = H-268, bw = W-168, bh = 176, r = bh / 2;
+  function tagPlaceholder(ctx, bx, by){
+    var label = 'hier alfons x markieren', bh = 92, r = bh / 2, cr = 28;
+    ctx.font = '800 32px Poppins, Arial, sans-serif';
+    var bw = 22 + cr * 2 + 18 + ctx.measureText(label).width + 30;
     ctx.save();
-    ctx.fillStyle = 'rgba(13,7,6,.55)'; rr(ctx, bx, by, bw, bh, r); ctx.fill();
-    ctx.setLineDash([26, 16]); ctx.lineWidth = 7; ctx.strokeStyle = '#FFFFFF'; rr(ctx, bx, by, bw, bh, r); ctx.stroke();
+    ctx.fillStyle = 'rgba(13,7,6,.6)'; rr(ctx, bx, by, bw, bh, r); ctx.fill();
+    ctx.setLineDash([16, 10]); ctx.lineWidth = 5; ctx.strokeStyle = '#FFFFFF'; rr(ctx, bx, by, bw, bh, r); ctx.stroke();
     ctx.restore();
-    // @-Kreis
-    var cx = bx + 30 + 58, cy = by + bh / 2;
-    ctx.fillStyle = '#E5402A'; ctx.beginPath(); ctx.arc(cx, cy, 58, 0, Math.PI * 2); ctx.fill();
+    var cx = bx + 22 + cr, cy = by + bh / 2;
+    ctx.fillStyle = '#E5402A'; ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#FFFFFF'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = '800 72px Poppins, Arial, sans-serif'; ctx.fillText('@', cx, cy + 4);
+    ctx.font = '800 36px Poppins, Arial, sans-serif'; ctx.fillText('@', cx, cy + 2);
     ctx.textAlign = 'left';
-    // Text
-    var tx = cx + 58 + 30, maxW = bx + bw - 44 - tx;
-    ctx.fillStyle = '#FFFFFF'; ctx.textBaseline = 'alphabetic';
-    fit(ctx, 'hier alfons x markieren', maxW, 58, '800 {s}px Poppins, Arial, sans-serif');
-    ctx.fillText('hier alfons x markieren', tx, cy - 6);
-    ctx.fillStyle = 'rgba(243,234,230,.85)';
-    var sub = HANDLE + ' hier erwähnen';
-    fit(ctx, sub, maxW, 36, '600 {s}px "IBM Plex Mono", Consolas, monospace');
-    ctx.fillText(sub, tx, cy + 46);
+    ctx.font = '800 32px Poppins, Arial, sans-serif'; ctx.fillText(label, cx + cr + 18, cy + 2);
+    ctx.textBaseline = 'alphabetic';
   }
 
   async function toFile(name){
