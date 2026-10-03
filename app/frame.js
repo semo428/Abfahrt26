@@ -42,16 +42,41 @@
     ctx.fillStyle = '#FFFFFF'; ctx.fillText(label, 112, 303);
     ctx.textBaseline = 'alphabetic';
     ctx.font = '800 200px Poppins, Arial, sans-serif';
-    ctx.fillStyle = '#F3EAE6'; ctx.fillText('abfahrt', 78, H-420);
+    ctx.fillStyle = '#F3EAE6'; ctx.fillText('abfahrt', 78, H-470);
     var wA = ctx.measureText('abfahrt').width;
-    ctx.fillStyle = '#E5402A'; ctx.fillText('.', 78 + wA, H-420);
+    ctx.fillStyle = '#E5402A'; ctx.fillText('.', 78 + wA, H-470);
     ctx.font = '800 104px Poppins, Arial, sans-serif';
     var x = 86, parts = C.eventDate.split('.').filter(Boolean); // ["24","10","2026"]
-    [parts[0], '/', parts[1], '/', parts[2]].forEach(function(p){ ctx.fillStyle = p === '/' ? '#E5402A' : '#F3EAE6'; ctx.fillText(p, x, H-270); x += ctx.measureText(p).width; });
-    ctx.font = '700 58px Poppins, Arial, sans-serif';
-    var hw = ctx.measureText(HANDLE).width + 80;
-    ctx.fillStyle = '#E5402A'; rr(ctx, 84, H-210, hw, 100, 50); ctx.fill();
-    ctx.fillStyle = '#FFFFFF'; ctx.textBaseline = 'middle'; ctx.fillText(HANDLE, 124, H-158);
+    [parts[0], '/', parts[1], '/', parts[2]].forEach(function(p){ ctx.fillStyle = p === '/' ? '#E5402A' : '#F3EAE6'; ctx.fillText(p, x, H-320); x += ctx.measureText(p).width; });
+    tagPlaceholder(ctx);
+  }
+
+  // Platzhalter statt fertigem Handle: hier soll der Gast in Instagram die echte Erwähnung draufsetzen.
+  // (Ein ins Bild gedruckter Handle ist KEINE Markierung – deshalb bewusst als leeres Feld gestaltet.)
+  function fit(ctx, text, maxW, size, tpl){
+    do { ctx.font = tpl.replace('{s}', size); size -= 2; } while (ctx.measureText(text).width > maxW && size > 20);
+  }
+  function tagPlaceholder(ctx){
+    var bx = 84, by = H-268, bw = W-168, bh = 176, r = bh / 2;
+    ctx.save();
+    ctx.fillStyle = 'rgba(13,7,6,.55)'; rr(ctx, bx, by, bw, bh, r); ctx.fill();
+    ctx.setLineDash([26, 16]); ctx.lineWidth = 7; ctx.strokeStyle = '#FFFFFF'; rr(ctx, bx, by, bw, bh, r); ctx.stroke();
+    ctx.restore();
+    // @-Kreis
+    var cx = bx + 30 + 58, cy = by + bh / 2;
+    ctx.fillStyle = '#E5402A'; ctx.beginPath(); ctx.arc(cx, cy, 58, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#FFFFFF'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '800 72px Poppins, Arial, sans-serif'; ctx.fillText('@', cx, cy + 4);
+    ctx.textAlign = 'left';
+    // Text
+    var tx = cx + 58 + 30, maxW = bx + bw - 44 - tx;
+    ctx.fillStyle = '#FFFFFF'; ctx.textBaseline = 'alphabetic';
+    fit(ctx, 'hier alfons x markieren', maxW, 58, '800 {s}px Poppins, Arial, sans-serif');
+    ctx.fillText('hier alfons x markieren', tx, cy - 6);
+    ctx.fillStyle = 'rgba(243,234,230,.85)';
+    var sub = HANDLE + ' hier erwähnen';
+    fit(ctx, sub, maxW, 36, '600 {s}px "IBM Plex Mono", Consolas, monospace');
+    ctx.fillText(sub, tx, cy + 46);
   }
 
   async function toFile(name){
@@ -82,11 +107,14 @@
     for (var i = 0; i < 5; i++){ ctx.fillStyle = i < stars ? '#E5402A' : 'rgba(243,234,230,.22)'; ctx.fillText('★', 90 + i*150, 640); }
     ctx.font = '600 44px "IBM Plex Mono", Consolas, monospace'; ctx.fillStyle = 'rgba(243,234,230,.8)';
     ctx.fillText('MEIN VIBE GERADE: ' + stars + '/5', 92, 730);
-    ctx.font = '700 78px Figtree, Arial, sans-serif'; ctx.fillStyle = '#F3EAE6';
-    var lines = wrap(ctx, '„' + text + '“', 880).slice(0, 5);
-    lines.forEach(function(l, i){ ctx.fillText(l, 90, 880 + i*98); });
+    // Zitat: bei langen Sätzen kleiner, damit es nicht in „abfahrt.“ läuft
+    var size = 78, lh = 98, quote = '„' + text + '“', lines;
+    ctx.font = '700 78px Figtree, Arial, sans-serif'; lines = wrap(ctx, quote, 880);
+    if (lines.length > 3){ size = 62; lh = 78; ctx.font = '700 62px Figtree, Arial, sans-serif'; lines = wrap(ctx, quote, 880).slice(0, 4); }
+    ctx.fillStyle = '#F3EAE6';
+    lines.forEach(function(l, i){ ctx.fillText(l, 90, 880 + i*lh); });
     ctx.font = '600 44px Figtree, Arial, sans-serif'; ctx.fillStyle = 'rgba(243,234,230,.7)';
-    ctx.fillText('— ' + (funName || '').toLowerCase(), 92, 880 + lines.length*98 + 30);
+    ctx.fillText('— ' + (funName || '').toLowerCase(), 92, 880 + lines.length*lh + 30);
     return toFile(ch.file);
   }
 
