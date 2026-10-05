@@ -275,13 +275,14 @@ button.task:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .rules-card .ra{color:var(--signal);font-size:26px;line-height:1}
 .rules-card:focus-visible{outline:2px solid #fff;outline-offset:2px}
 
-.route-card{display:grid;grid-template-columns:44px 1fr 16px;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;
-  background:var(--bone);color:var(--night);text-decoration:none;box-shadow:0 14px 30px -18px rgba(229,64,42,.7)}
-.route-card .ri{width:44px;height:44px;border-radius:50%;background:var(--signal);color:#fff;display:grid;place-items:center}
-.route-card .ri svg{width:24px;height:24px}
-.route-card b{display:block;font-family:var(--display);font-weight:800;font-size:19px;text-transform:lowercase;line-height:1.1}
-.route-card small{display:block;color:#5a4440;font-size:13.5px;margin-top:2px}
-.route-card .ra{color:var(--signal);font-size:28px;line-height:1}
+.route-card{display:grid;grid-template-columns:32px 1fr 12px;gap:10px;align-items:center;padding:9px 12px;border-radius:14px;
+  background:var(--night-2);border:1px solid var(--line-strong);color:var(--bone);text-decoration:none}
+.route-card:hover{border-color:rgba(229,64,42,.55)}
+.route-card .ri{width:32px;height:32px;border-radius:50%;background:rgba(229,64,42,.14);color:var(--signal);display:grid;place-items:center}
+.route-card .ri svg{width:18px;height:18px}
+.route-card b{display:block;font-weight:700;font-size:15px;line-height:1.2}
+.route-card small{display:block;color:var(--ash);font-size:12.5px;margin-top:1px}
+.route-card .ra{color:var(--ash);font-size:20px;line-height:1}
 .route-card:focus-visible{outline:2px solid var(--signal);outline-offset:3px}
 
 /* Gewinne: Laufband + Übersicht */

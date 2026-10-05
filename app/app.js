@@ -128,7 +128,7 @@
     var legend = MAP_POINTS.map(function(p, i){ return '<li><span class="num">' + (i + 1) + '</span><span><b>' + esc(p[0]) + '</b>' + (p[1] ? '<small>' + esc(p[1]) + '</small>' : '') + '</span></li>'; }).join('');
     var route = '<a class="route-card" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(C.address) + '" target="_blank" rel="noopener">' +
       '<span class="ri" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg></span>' +
-      '<span><b>Route planen</b><small>Öffnet Google Maps mit dem Weg zum alfons x</small></span><span class="ra" aria-hidden="true">›</span></a>';
+      '<span><b>Route planen</b><small>Weg zum alfons x in Google Maps</small></span><span class="ra" aria-hidden="true">›</span></a>';
     render(top() + '<section class="view">' + route + '<div><span class="eyebrow">Wo ist was?</span><h1>lageplan.</h1></div>' +
       exampleNote(C.mapIsExample, 'der echte Lageplan') +
       '<div class="map-wrap">' + img + '</div>' +
