@@ -43,7 +43,7 @@
   }
   function prizeGrid(){
     if (!PRIZES.length) return '';
-    return '<div class="prizes"><span class="eyebrow">Das kannst du heute gewinnen</span><ul>' +
+    return '<div class="prizes"><ul>' +
       PRIZES.map(function(p){ return '<li><span class="pi" aria-hidden="true">' + esc(p.icon) + '</span><span class="pc">' + p.count + '×</span><b>' + esc(p.title) + '</b><small>' + esc(p.sub) + '</small></li>'; }).join('') +
       '</ul></div>';
   }
@@ -240,21 +240,22 @@
         '<div class="hero"><span class="eyebrow">Dein Ticket für die</span><div class="big-word">abfahrt<span>.</span></div>' +
         '<div class="sub">' + esc(C.eventDate.split('.')[0]) + '<span>/</span>' + esc(C.eventDate.split('.')[1]) + ' · alfons x</div></div>' +
         rulesCard() +
+        '<form id="reg" class="reg-card" novalidate>' +
+          '<div><span class="eyebrow">Mitmachen &amp; gewinnen</span><h1 class="reg-title">ticket lösen.</h1></div>' +
+          '<div class="field"><label for="fn">Dein Spaßname</label><input class="input" id="fn" name="fn" maxlength="24" autocomplete="off" placeholder="z. B. Nachtfalke" required><small>Nicht dein echter Name – so rufen wir dich bei der Ziehung auf.</small></div>' +
+          '<div class="field"><label for="ig">Dein Instagram</label><div class="input-at"><span>@</span><input class="input" id="ig" name="ig" maxlength="30" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="deinname" required value="' + esc(prefill) + '"></div><small>Damit finden wir bei der Ziehung deine Story.</small></div>' +
+          '<label class="check" for="ok"><input type="checkbox" id="ok" required><span>Ich akzeptiere die <a href="teilnahmebedingungen.html" target="_blank" rel="noopener">Teilnahmebedingungen</a>.</span></label>' +
+          errorBox('reg-err') +
+          '<button class="btn red" id="reg-btn" type="submit">Los geht’s</button>' +
+          '<div class="counter" id="counter" hidden><span class="n" id="count">0</span><span>sind schon dabei</span></div>' +
+        '</form>' +
+        '<div class="sec"><span>Das kannst du gewinnen</span></div>' +
         prizeGrid() +
-        '<p class="lede">Mitmachen ist ganz einfach:</p>' +
+        '<div class="sec"><span>So läuft’s</span></div>' +
         '<ol class="steps"><li><b>Anmelden</b><span>Spaßname + Instagram – dauert 20 Sekunden.</span></li>' +
         '<li><b>3 Challenges machen</b><span>Foto, Sterne, Pose – alles hier in der App.</span></li>' +
         '<li><b>Um ' + esc(C.drawTime) + ' Uhr gewinnen</b><span>Der DJ lost aus. Du musst im Club sein.</span></li></ol>' +
-        '<div class="counter" id="counter" hidden><span class="n" id="count">0</span><span>sind schon dabei</span></div>' +
-        '<form id="reg" novalidate>' +
-          '<h1 style="font-size:34px">ticket lösen.</h1>' +
-          '<div class="field"><label for="fn">Dein Spaßname</label><input class="input" id="fn" name="fn" maxlength="24" autocomplete="off" placeholder="z. B. Nachtfalke" required><small>Bitte nicht dein echter Name – so wirst du bei der Ziehung aufgerufen.</small></div>' +
-          '<div class="field"><label for="ig">Dein Instagram</label><div class="input-at"><span>@</span><input class="input" id="ig" name="ig" maxlength="30" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="deinname" required value="' + esc(prefill) + '"></div><small>Brauchen wir, um deine Story bei der Ziehung zu finden.</small></div>' +
-          '<label class="check" for="ok"><input type="checkbox" id="ok" required><span>Ich akzeptiere die <a href="teilnahmebedingungen.html" target="_blank" rel="noopener">Teilnahmebedingungen</a> und habe den <a href="datenschutz.html" target="_blank" rel="noopener">Datenschutzhinweis</a> gelesen.</span></label>' +
-          errorBox('reg-err') +
-          '<button class="btn red" id="reg-btn" type="submit">Los geht’s</button>' +
-          '<p class="muted">Wir speichern nur Spaßname, Instagram-Name und deine erledigten Challenges. Fotos bleiben auf deinem Handy.</p>' +
-        '</form>' +
+        '<p class="fineprint">Wir speichern nur Spaßname, Instagram-Name und deine erledigten Challenges. Fotos bleiben auf deinem Handy. Mehr im <a href="datenschutz.html">Datenschutzhinweis</a>.</p>' +
       '</section>' + foot());
     try{ var st = await S.stats(); if (st && st.players > 0){ $('#count').textContent = st.players.toLocaleString('de-DE'); $('#counter').hidden = false; } }catch(e){}
     $('#reg').addEventListener('submit', async function(ev){
@@ -296,15 +297,16 @@
     var drawn = me.status === 'drawn'
       ? '<div class="drawn" role="status"><span class="eyebrow">Achtung</span><b>du wurdest gezogen!</b><p class="status">Das Team prüft gerade deine Story. Bleib in der Nähe vom DJ-Pult.</p></div>' : '';
     render(top() + ticker() + '<section class="view">' + drawn + rulesCard() + charCard(me, true) +
-      '<div><div class="progress-head"><span class="eyebrow">Deine Mission</span><span class="n">' + n + '<span>/3</span></span></div>' +
+      '<div class="sec"><span>Deine Mission</span></div>' +
+      '<div><div class="progress-head"><span class="eyebrow">Fortschritt</span><span class="n">' + n + '<span>/3</span></span></div>' +
       '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="' + n + '"><i style="width:' + (n / 3 * 100) + '%"></i></div></div>' +
       (n < 3 ? '<p class="howto">👇 <b>Tippe auf eine Challenge.</b> Mach sie, teile sie als Story und markiere ' + esc(HANDLE) + '. Alle 3 erledigt = du bist im Lostopf.</p>' : '') +
       '<ul class="tasks" style="list-style:none;margin:0;padding:0">' + tasks + '</ul>' + pot +
-      '<div class="hint"><span aria-hidden="true">📌</span><span>Storys zählen nur mit Markierung <b>' + esc(HANDLE) + '</b>. Das Team prüft das bei der Ziehung.</span></div>' +
+      '<div class="sec" id="live-sec" hidden><span>Live im Club</span></div>' +
       '<div class="vibe-live" id="vibe-live" hidden><span class="eyebrow">Live-Stimmung</span><div class="avg"><span class="n" id="v-avg"></span><span class="muted" id="v-count"></span></div><ul id="v-list"></ul></div>' +
       '<div class="counter" id="counter" hidden><span class="n" id="count">0</span><span>sind heute dabei</span></div>' +
       (me.status === 'drawn' ? '' :
-        '<div class="reset"><button class="linkbtn" id="reset">Daten löschen &amp; neu anmelden</button>' +
+        '<div class="reset fineprint-zone"><button class="linkbtn" id="reset">Daten löschen &amp; neu anmelden</button>' +
         '<div class="confirm" id="reset-box" hidden><b>wirklich löschen?</b><p>Dein Spaßname, Charakter, Instagram-Name und alle erledigten Challenges werden <b>komplett gelöscht</b>. Danach kannst du dich neu anmelden.</p>' +
         errorBox('reset-err') + '<div class="btn-row"><button class="btn danger" id="reset-yes">Ja, alles löschen</button><button class="btn ghost" id="reset-no">Abbrechen</button></div></div></div>') +
       '</section>' + foot());
@@ -344,7 +346,7 @@
         $('#v-avg').innerHTML = esc(Number(st.vibe_avg).toFixed(1).replace('.', ',')) + '<em>★</em>';
         $('#v-count').textContent = st.vibe_count + (st.vibe_count == 1 ? ' Bewertung' : ' Bewertungen');
         $('#v-list').innerHTML = (st.recent || []).map(function(v){ return '<li><b>' + esc(v.fun_name) + '</b> ' + '★'.repeat(v.stars) + ' „' + esc(v.text) + '“</li>'; }).join('');
-        $('#vibe-live').hidden = false;
+        $('#vibe-live').hidden = false; if ($('#live-sec')) $('#live-sec').hidden = false;
       }
     }catch(e){}
   }

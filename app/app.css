@@ -285,6 +285,20 @@ button.task:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .route-card .ra{color:var(--ash);font-size:20px;line-height:1}
 .route-card:focus-visible{outline:2px solid var(--signal);outline-offset:3px}
 
+/* Abschnitte mit roter Trennlinie */
+.sec{display:flex;align-items:center;gap:12px;margin-top:10px}
+.sec span{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--bone);white-space:nowrap}
+.sec::before{content:"";width:18px;height:3px;border-radius:2px;background:var(--signal);flex:none}
+.sec::after{content:"";flex:1;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--signal),rgba(229,64,42,.15))}
+.sec{flex-direction:row}
+/* Anmeldekarte */
+.reg-card{border:2px solid var(--signal);border-radius:20px;padding:18px 16px;background:linear-gradient(180deg,rgba(229,64,42,.10),var(--night-2) 40%);box-shadow:0 24px 50px -30px rgba(229,64,42,.7)}
+.reg-title{font-size:34px;margin-top:4px}
+.reg-card .counter{background:transparent;border-color:var(--line);justify-content:center}
+.fineprint{margin-top:18px;font-size:12px;line-height:1.5;color:var(--ash-dim);opacity:.75;text-align:center}
+.fineprint a{color:var(--ash)}
+.fineprint-zone{margin-top:22px;opacity:.75}
+
 /* Gewinne: Laufband + Übersicht */
 .ticker{margin-inline:-16px;background:var(--signal);color:#fff;overflow:hidden;border-radius:0}
 .ticker-track{display:flex;width:max-content;animation:ticker 22s linear infinite}
