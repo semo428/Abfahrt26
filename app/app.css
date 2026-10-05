@@ -139,6 +139,11 @@ button.task:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .vibe-live li{font-size:14px;color:var(--ash)}
 .vibe-live li b{color:var(--bone);font-weight:600}
 
+/* Zurück-Knopf in Challenges (bleibt beim Scrollen oben) */
+.backbtn{position:sticky;top:calc(8px + env(safe-area-inset-top,0px));z-index:30;justify-self:start;display:inline-flex;align-items:center;gap:8px;padding:11px 18px 11px 14px;border-radius:999px;border:1px solid var(--line-strong);background:rgba(13,7,6,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:var(--bone);font:inherit;font-weight:700;font-size:15px;cursor:pointer}
+.backbtn span{font-size:24px;line-height:1;margin-top:-2px;color:var(--signal)}
+.backbtn:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
+
 /* Challenge */
 .chal-head{display:grid;gap:10px}
 .chip{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--line-strong);border-radius:999px;padding:4px 10px;width:max-content;color:var(--bone)}

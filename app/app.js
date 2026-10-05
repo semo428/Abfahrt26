@@ -151,11 +151,20 @@
     if (t === 'plan') return viewMap();
     if (t === 'regeln') return viewRules();
     if (!ready) return boot();
+    if (me && me.status !== 'won' && history.state && CH[history.state.ch]) return viewChallenge(history.state.ch);
     route();
   }
-  window.addEventListener('hashchange', onRoute);
+  var routeQueued = false;
+  function queueRoute(){ if (routeQueued) return; routeQueued = true; setTimeout(function(){ routeQueued = false; onRoute(); }, 0); }
+  window.addEventListener('hashchange', queueRoute);
+  window.addEventListener('popstate', queueRoute);   // Zurück-Geste / Zurück-Taste des Handys
+  function goBack(){ if (history.state && history.state.ch) history.back(); else viewDashboard(); }
   document.querySelectorAll('#tabbar a').forEach(function(a){
-    a.addEventListener('click', function(){ if (('#' + a.dataset.tab) === (location.hash || '#mission')) setTimeout(onRoute, 0); });
+    a.addEventListener('click', function(ev){
+      if (('#' + a.dataset.tab) !== (location.hash || '#mission')) return;   // anderer Tab: normaler Hash-Wechsel
+      ev.preventDefault();
+      if (a.dataset.tab === 'mission' && history.state && history.state.ch) history.back(); else queueRoute();
+    });
   });
 
   // ---------- Start ----------
@@ -316,13 +325,14 @@
   // ---------- Challenges ----------
   function viewChallenge(key){
     var ch = CH[key], done = !!me[key + '_at'];
-    var head = '<a href="./" class="muted" id="back">← Zur Mission</a>' +
+    if (!(history.state && history.state.ch === key)) history.pushState({ ch: key }, '', location.hash || '#mission');
+    var head = '<button type="button" class="backbtn" id="back"><span aria-hidden="true">‹</span> Zurück zur Mission</button>' +
       '<div class="chal-head"><span class="chip red">Challenge ' + ch.n + '</span><h1>' + esc(ch.title) + '</h1><p class="task-text">' + esc(ch.task) + '</p></div>' +
       '<div class="done-box" id="done-box"' + (done ? '' : ' hidden') + '><b>erledigt ✓</b><span class="status">Die Challenge ist abgehakt. Du kannst sie trotzdem nochmal machen.</span></div>';
     render(top() + '<section class="view">' + head + (key === 'vibe' ? vibeTools() : photoTools(key)) +
-      '<button class="btn ghost" id="to-dash">Zur Mission</button></section>' + foot());
-    $('#to-dash').onclick = function(){ viewDashboard(); };
-    $('#back').onclick = function(ev){ ev.preventDefault(); viewDashboard(); };
+      '<button class="btn ghost" id="to-dash">‹ Zurück zur Mission</button></section>' + foot());
+    $('#to-dash').onclick = goBack;
+    $('#back').onclick = goBack;
     if (key === 'vibe') wireVibe(); else wirePhoto(key);
   }
   async function markDone(key){
@@ -337,11 +347,11 @@
   function photoTools(key){
     return '<ol class="steps compact"><li><b>Foto machen</b><span>Der Abfahrt-Rahmen kommt automatisch drauf.</span></li>' +
       '<li><b>„In Story teilen“ drücken</b><span>Dann Instagram → Story wählen.</span></li>' +
-      '<li><b>' + esc(HANDLE) + ' markieren & posten</b><span>Die Erwähnung auf das Feld „hier alfons x markieren“ setzen.</span></li></ol>' +
+      '<li><b>' + esc(HANDLE) + ' markieren & posten</b><span>@-Sticker → „alfonsx“ tippen → Account in der Liste antippen → aufs Feld schieben.</span></li></ol>' +
       '<label class="btn red" for="cam" id="cam-label">Foto aufnehmen</label>' +
       '<input id="cam" type="file" accept="image/*" capture="environment" hidden>' +
       '<img class="preview" id="preview" alt="Dein Foto mit Abfahrt-Rahmen" hidden>' +
-      '<div class="hint" id="tag-hint" hidden><span aria-hidden="true">👉</span><span>Siehst du oben im Bild das gestrichelte Feld <b>„hier alfons x markieren“</b>? Setz genau dort in Instagram die Erwähnung <b>' + esc(HANDLE) + '</b> drauf. Der Name ist schon kopiert – einfach einfügen.</span></div>' +
+      '<div class="hint" id="tag-hint" hidden><span aria-hidden="true">👉</span><span>So markierst du richtig: In Instagram den Sticker <b>„@ Erwähnung“</b> wählen, <b>alfonsx</b> tippen und in der Liste auf <b>' + esc(HANDLE) + '</b> tippen. Dann auf das Feld <b>„hier alfons x markieren“</b> oben im Bild schieben.</span></div>' +
       '<button class="btn" id="share" hidden>In Story teilen</button>' +
       '<p class="status" id="status" aria-live="polite">Der Abfahrt-Rahmen kommt automatisch aufs Foto. Das Foto bleibt auf deinem Handy.</p>' +
       errorBox('ch-err') +
@@ -383,7 +393,7 @@
       errorBox('ch-err') +
       '<button class="btn red" id="send">Vibe abschicken</button>' +
       '<img class="preview" id="preview" alt="Deine Vibe-Karte" hidden>' +
-      '<div class="hint" id="tag-hint" hidden><span aria-hidden="true">👉</span><span>Optional: Teile deine Vibe-Karte als Story – und setz die Erwähnung <b>' + esc(HANDLE) + '</b> auf das Feld <b>„hier alfons x markieren“</b> oben im Bild.</span></div>' +
+      '<div class="hint" id="tag-hint" hidden><span aria-hidden="true">👉</span><span>Optional: Teile deine Vibe-Karte als Story. So markierst du richtig: In Instagram den Sticker <b>„@ Erwähnung“</b> wählen, <b>alfonsx</b> tippen und in der Liste auf <b>' + esc(HANDLE) + '</b> tippen. Dann auf das Feld <b>„hier alfons x markieren“</b> oben im Bild schieben.</span></div>' +
       '<button class="btn" id="share" hidden>Vibe-Karte in Story teilen</button>' +
       '<p class="status" id="status" aria-live="polite"></p>';
   }

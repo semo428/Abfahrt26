@@ -111,8 +111,6 @@
 
   // Ergebnis: 'shared' | 'aborted' | 'unsupported' | 'blocked'
   async function share(file){
-    // Handle in die Zwischenablage, damit man ihn in Instagram nur einfügen muss
-    try{ navigator.clipboard && navigator.clipboard.writeText(HANDLE); }catch(e){}
     if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) return 'unsupported';
     try{ await navigator.share({ files: [file] }); return 'shared'; }
     catch(e){ return e && e.name === 'AbortError' ? 'aborted' : 'blocked'; }
