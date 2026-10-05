@@ -8,7 +8,12 @@ window.ABFAHRT_CONFIG = {
   instagram: "alfonsx_sigmaringen",
   eventDate: "24.10.2026",
   drawTime: "02:00",
-  prize: "den Hauptgewinn",          // erscheint im Text „… im Lostopf für …“
+  // Gewinne des Abends (erscheinen im Laufband, auf der Startseite und in der Admin-Ansicht)
+  prizes: [
+    { count: 5, icon: "⭐", title: "Meet & Greet",            sub: "mit den Stars" },
+    { count: 3, icon: "👕", title: "Special-Edition T‑Shirt", sub: "alfons x" },
+    { count: 5, icon: "🥤", title: "Getränk",                 sub: "deiner Wahl" }
+  ],
 
   // ---------- Ablauf des Abends (BEISPIEL) ----------
   // Zeiten nach Mitternacht werden automatisch dem nächsten Tag zugeordnet.

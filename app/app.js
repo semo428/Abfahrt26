@@ -31,6 +31,23 @@
   function foot(){
     return '<footer class="foot"><a href="teilnahmebedingungen.html">Teilnahmebedingungen</a><a href="datenschutz.html">Datenschutz</a><span>alfons x · Sigmaringen</span></footer>';
   }
+  // ---------- Gewinne ----------
+  var PRIZES = C.prizes || [];
+  var PRIZE_TOTAL = PRIZES.reduce(function(s, p){ return s + p.count; }, 0);
+  function ticker(){
+    if (!PRIZES.length) return '';
+    var items = '<span><b>🎁 ' + PRIZE_TOTAL + ' Gewinne heute Nacht</b></span><i>✦</i>' +
+      PRIZES.map(function(p){ return '<span>' + esc(p.icon) + ' <b>' + p.count + '×</b> ' + esc(p.title + ' ' + p.sub) + '</span><i>✦</i>'; }).join('');
+    var label = PRIZE_TOTAL + ' Gewinne heute Nacht: ' + PRIZES.map(function(p){ return p.count + '× ' + p.title + ' ' + p.sub; }).join(', ');
+    return '<div class="ticker" role="note" aria-label="' + esc(label) + '"><div class="ticker-track" aria-hidden="true">' +
+      '<div class="ticker-set">' + items + '</div><div class="ticker-set">' + items + '</div></div></div>';
+  }
+  function prizeGrid(){
+    if (!PRIZES.length) return '';
+    return '<div class="prizes"><span class="eyebrow">Das kannst du heute gewinnen</span><ul>' +
+      PRIZES.map(function(p){ return '<li><span class="pi" aria-hidden="true">' + esc(p.icon) + '</span><span class="pc">' + p.count + '×</span><b>' + esc(p.title) + '</b><small>' + esc(p.sub) + '</small></li>'; }).join('') +
+      '</ul></div>';
+  }
   function errorBox(id){ return '<p class="error" id="' + id + '" role="alert" hidden></p>'; }
   function showError(id, msg){ var el = $('#' + id); if (el){ el.textContent = msg; el.hidden = false; } }
   function busy(btn, on, label){ if (!btn) return; btn.disabled = on; if (label) btn.textContent = label; }
@@ -68,7 +85,7 @@
     render(top() + '<section class="view"><div><span class="eyebrow">Samstag · ' + esc(C.eventDate) + '</span><h1>der abend.</h1></div>' +
       exampleNote(C.scheduleIsExample, 'der echte Ablauf') +
       '<ol class="timeline">' + list + '</ol>' +
-      '<div class="hint"><span aria-hidden="true">🏆</span><span>Um <b>' + esc(C.drawTime) + ' Uhr</b> wird der Gewinner ausgelost. Mitmachen: unten auf <b>Mission</b> tippen.</span></div>' +
+      '<div class="hint"><span aria-hidden="true">🏆</span><span>Um <b>' + esc(C.drawTime) + ' Uhr</b> werden <b>' + PRIZE_TOTAL + ' Gewinne</b> ausgelost. Mitmachen: unten auf <b>Mission</b> tippen.</span></div>' +
       '</section>' + foot());
   }
 
@@ -213,11 +230,12 @@
 
   // ---------- Anmeldung ----------
   async function viewRegister(){
-    render(top() +
+    render(top() + ticker() +
       '<section class="view">' +
         '<div class="hero"><span class="eyebrow">Dein Ticket für die</span><div class="big-word">abfahrt<span>.</span></div>' +
         '<div class="sub">' + esc(C.eventDate.split('.')[0]) + '<span>/</span>' + esc(C.eventDate.split('.')[1]) + ' · alfons x</div></div>' +
-        '<p class="lede">Gewinne <strong>' + esc(C.prize) + '</strong>! So einfach geht’s:</p>' +
+        prizeGrid() +
+        '<p class="lede">Mitmachen ist ganz einfach:</p>' +
         '<ol class="steps"><li><b>Anmelden</b><span>Spaßname + Instagram – dauert 20 Sekunden.</span></li>' +
         '<li><b>3 Challenges machen</b><span>Foto, Sterne, Pose – alles hier in der App.</span></li>' +
         '<li><b>Um ' + esc(C.drawTime) + ' Uhr gewinnen</b><span>Der DJ lost aus. Du musst im Club sein.</span></li></ol>' +
@@ -267,11 +285,11 @@
         '<span class="st">' + (done ? '✓ erledigt' : 'starten<i aria-hidden="true">›</i>') + '</span></button></li>';
     }).join('');
     var pot = n === 3
-      ? '<div class="pot in"><b>du bist im lostopf.</b><p>Ziehung um ' + esc(C.drawTime) + ' Uhr. Der DJ ruft den Gewinner auf – halt dein Handy bereit.</p></div>'
+      ? '<div class="pot in"><b>du bist im lostopf.</b><p>Um ' + esc(C.drawTime) + ' Uhr werden ' + PRIZE_TOTAL + ' Gewinne ausgelost. Der DJ ruft die Gewinner auf – halt dein Handy bereit.</p></div>'
       : '<div class="pot"><b>noch ' + (3 - n) + ' bis zum lostopf.</b><p>Tippe oben auf eine Challenge und leg los.</p></div>';
     var drawn = me.status === 'drawn'
       ? '<div class="drawn" role="status"><span class="eyebrow">Achtung</span><b>du wurdest gezogen!</b><p class="status">Das Team prüft gerade deine Story. Bleib in der Nähe vom DJ-Pult.</p></div>' : '';
-    render(top() + '<section class="view">' + drawn + charCard(me, true) +
+    render(top() + ticker() + '<section class="view">' + drawn + charCard(me, true) +
       '<div><div class="progress-head"><span class="eyebrow">Deine Mission</span><span class="n">' + n + '<span>/3</span></span></div>' +
       '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="' + n + '"><i style="width:' + (n / 3 * 100) + '%"></i></div></div>' +
       (n < 3 ? '<p class="howto">👇 <b>Tippe auf eine Challenge.</b> Mach sie, teile sie als Story und markiere ' + esc(HANDLE) + '. Alle 3 erledigt = du bist im Lostopf.</p>' : '') +
