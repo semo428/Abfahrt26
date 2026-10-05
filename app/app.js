@@ -24,7 +24,7 @@
   function stopTimers(){ clearInterval(pollTimer); clearInterval(clockTimer); pollTimer = clockTimer = null; }
   function render(html){ stopTimers(); root.innerHTML = html; window.scrollTo(0, 0); var h = root.querySelector('h1,h2'); if (h){ h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } }
   function top(){
-    return '<header class="top"><a class="brand" href="./" aria-label="Zur Mission"><img src="logo.png" alt=""><b>abfahrt</b></a>' +
+    return '<header class="top"><a class="brand" href="#mission" aria-label="Zur Mission"><img src="logo.png" alt=""><b>abfahrt</b></a>' +
       '<span class="date"><b>' + esc(C.eventDate.slice(0, 5).replace('.', '/')) + '</b> · alfons x</span></header>' +
       (S.isDemo ? '<div class="demo-banner">DEMO-MODUS · Daten bleiben nur auf diesem Gerät</div>' : '');
   }
@@ -42,6 +42,121 @@
       '<p><b>Superkraft:</b> ' + esc(c.superpower || '') + '</p>' +
       '<p><b>Schwäche:</b> ' + esc(c.weakness || '') + '</p></div>';
   }
+
+
+  // =====================================================================
+  // INFO-SEITEN (ohne Anmeldung nutzbar): Ablauf · Lageplan · Regeln
+  // =====================================================================
+  function exampleNote(on, what){ return on ? '<p class="example-note">BEISPIEL – ' + esc(what) + ' folgt noch</p>' : ''; }
+
+  function eventTime(hhmm){
+    var d = C.eventDate.split('.'), t = hhmm.split(':');
+    var dt = new Date(+d[2], +d[1] - 1, +d[0], +t[0], +t[1]);
+    if (+t[0] < 12) dt.setDate(dt.getDate() + 1);   // nach Mitternacht = nächster Tag
+    return dt;
+  }
+
+  function viewSchedule(){
+    var items = C.schedule || [], now = new Date(), cur = -1;
+    items.forEach(function(it, i){ if (eventTime(it.time) <= now) cur = i; });
+    if (cur === items.length - 1) cur = -1;           // nach "Ende": nichts mehr hervorheben
+    var list = items.map(function(it, i){
+      var cls = 'slot' + (it.highlight ? ' hl' : '') + (i === cur ? ' now' : '') + (cur >= 0 && i < cur ? ' past' : '');
+      return '<li class="' + cls + '"><span class="t">' + esc(it.time) + '</span><span class="d"><b>' + esc(it.title) + '</b>' +
+        (it.note ? '<small>' + esc(it.note) + '</small>' : '') + (i === cur ? '<span class="chip red">läuft gerade</span>' : '') + '</span></li>';
+    }).join('');
+    render(top() + '<section class="view"><div><span class="eyebrow">Samstag · ' + esc(C.eventDate) + '</span><h1>der abend.</h1></div>' +
+      exampleNote(C.scheduleIsExample, 'der echte Ablauf') +
+      '<ol class="timeline">' + list + '</ol>' +
+      '<div class="hint"><span aria-hidden="true">🏆</span><span>Um <b>' + esc(C.drawTime) + ' Uhr</b> wird der Gewinner ausgelost. Mitmachen: unten auf <b>Mission</b> tippen.</span></div>' +
+      '</section>' + foot());
+  }
+
+  var MAP_POINTS = [
+    ['Eingang & Security', 'Hier kommst du rein – und hier hilft dir die Security.'],
+    ['Garderobe', 'Jacke abgeben'],
+    ['Bar', 'Getränke'],
+    ['Tanzfläche', 'Hier passiert’s'],
+    ['DJ-Pult', 'Hier wird um ' + C.drawTime + ' Uhr ausgelost'],
+    ['Toiletten', ''],
+    ['Lounge', 'Kurz durchschnaufen'],
+    ['Raucherbereich', 'Nur draußen – drinnen wird nicht geraucht']
+  ];
+  function mapSvg(){
+    function pin(n, x, y){ return '<g class="pin"><circle cx="' + x + '" cy="' + y + '" r="13"/><text x="' + x + '" y="' + (y + 5) + '">' + n + '</text></g>'; }
+    return '<svg class="floorplan" viewBox="0 0 400 470" role="img" aria-label="Beispiel-Lageplan des Clubs mit 8 nummerierten Bereichen">' +
+      '<defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" class="hatch"/></pattern></defs>' +
+      '<rect x="14" y="14" width="300" height="400" rx="10" class="wall"/>' +
+      '<rect x="326" y="250" width="62" height="164" rx="8" class="outside"/>' +
+      '<text x="357" y="236" class="lbl small">draußen</text>' +
+      '<rect x="104" y="30" width="120" height="44" rx="6" class="zone strong"/><text x="164" y="58" class="lbl">DJ</text>' +
+      '<rect x="80" y="92" width="168" height="170" rx="8" class="zone dance"/><text x="164" y="182" class="lbl">Tanzfläche</text>' +
+      '<rect x="28" y="92" width="38" height="190" rx="6" class="zone"/><text x="47" y="190" class="lbl small" transform="rotate(-90 47 190)">Bar</text>' +
+      '<rect x="262" y="30" width="40" height="80" rx="6" class="zone"/><text x="282" y="76" class="lbl small">WC</text>' +
+      '<rect x="262" y="176" width="40" height="150" rx="6" class="zone"/><text x="282" y="268" class="lbl small" transform="rotate(-90 282 268)">Garderobe</text>' +
+      '<rect x="28" y="300" width="130" height="80" rx="6" class="zone"/><text x="93" y="345" class="lbl small">Lounge</text>' +
+      '<rect x="190" y="404" width="70" height="20" class="door"/><text x="225" y="452" class="lbl">Eingang</text>' +
+      '<rect x="306" y="320" width="20" height="44" class="door"/>' +
+      '<text x="22" y="30" class="exit">EXIT</text><text x="286" y="408" class="exit">EXIT</text>' +
+      pin(1, 225, 390) + pin(2, 282, 194) + pin(3, 47, 112) + pin(4, 120, 112) + pin(5, 214, 44) + pin(6, 282, 46) + pin(7, 48, 318) + pin(8, 357, 270) +
+      '</svg>';
+  }
+  function viewMap(){
+    var img = C.mapImage ? '<img class="map-img" src="' + esc(C.mapImage) + '" alt="Lageplan alfons x">' : mapSvg();
+    var legend = MAP_POINTS.map(function(p, i){ return '<li><span class="num">' + (i + 1) + '</span><span><b>' + esc(p[0]) + '</b>' + (p[1] ? '<small>' + esc(p[1]) + '</small>' : '') + '</span></li>'; }).join('');
+    render(top() + '<section class="view"><div><span class="eyebrow">Wo ist was?</span><h1>lageplan.</h1></div>' +
+      exampleNote(C.mapIsExample, 'der echte Lageplan') +
+      '<div class="map-wrap">' + img + '</div>' +
+      '<ol class="legend">' + legend + '</ol>' +
+      '<p class="muted"><b style="color:var(--ok)">EXIT</b> = Notausgang. Im Notfall den grünen Schildern folgen.</p>' +
+      '<a class="btn ghost" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(C.address) + '" target="_blank" rel="noopener">Route planen (Google Maps)</a>' +
+      '</section>' + foot());
+  }
+
+  function viewRules(){
+    function li(sym, txt){ return '<li><span class="sym" aria-hidden="true">' + sym + '</span><span>' + txt + '</span></li>'; }
+    render(top() + '<section class="view">' +
+      '<div><span class="eyebrow">Damit alle feiern können</span><h1><span class="red">x</span> rules.</h1></div>' +
+      '<div class="rules no"><h2>no go’s</h2><ul>' +
+        li('✕', '<b>Nein heißt nein.</b> Immer.') +
+        li('✕', '<b>Rauchen im Club.</b> Rauchen nur draußen.') +
+        li('✕', '<b>Null Toleranz</b> für Rassismus, Sexismus und Gewalt.') +
+      '</ul></div>' +
+      '<div class="rules yes"><h2>das geht immer</h2><ul>' +
+        li('✓', '<b>Vapes</b> sind okay.') +
+        li('✓', '<b>Feiern, tanzen, Spaß haben!</b>') +
+        li('✓', '<b>Fotos machen – und ' + esc(HANDLE) + ' verlinken!</b>') +
+      '</ul></div>' +
+      '<div class="help" role="note"><span class="eyebrow">Du fühlst dich belästigt oder unwohl?</span>' +
+        '<b>Sag sofort Bescheid.</b><p>' + esc(C.helpWhere) + '. Wir kümmern uns – ohne Diskussion.</p></div>' +
+      '<div class="zero"><span class="z">zero</span><span class="zt">tolerance</span>' +
+        '<p>Bei sexueller Belästigung, Rassismus oder Aggression gibt es <b>Hausverbot</b> oder einen <b>Clubverweis</b>.</p>' +
+        '<p class="en">We do not tolerate any form of sexual harassment, racism or aggression.</p></div>' +
+      '<p class="sign">euer alfons x Team</p>' +
+      '</section>' + foot());
+  }
+
+  // ---------- Navigation (Tab-Leiste unten) ----------
+  var TABS = ['mission', 'ablauf', 'plan', 'regeln'];
+  var ready = false;
+  function currentTab(){ var t = location.hash.replace('#', ''); return TABS.indexOf(t) >= 0 ? t : 'mission'; }
+  function setTab(t){
+    document.querySelectorAll('#tabbar a').forEach(function(a){
+      if (a.dataset.tab === t) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+    });
+  }
+  function onRoute(){
+    var t = currentTab(); setTab(t);
+    if (t === 'ablauf') return viewSchedule();
+    if (t === 'plan') return viewMap();
+    if (t === 'regeln') return viewRules();
+    if (!ready) return boot();
+    route();
+  }
+  window.addEventListener('hashchange', onRoute);
+  document.querySelectorAll('#tabbar a').forEach(function(a){
+    a.addEventListener('click', function(){ if (('#' + a.dataset.tab) === (location.hash || '#mission')) setTimeout(onRoute, 0); });
+  });
 
   // ---------- Start ----------
   var params = new URLSearchParams(location.search);
@@ -73,7 +188,8 @@
       render(top() + '<div class="view"><h2>keine verbindung.</h2><p class="lede">' + esc(e.message) + '</p><button class="btn red" id="retry">Nochmal versuchen</button></div>');
       $('#retry').onclick = boot; return;
     }
-    route();
+    ready = true;
+    if (currentTab() === 'mission') route();
   }
   function route(){
     if (!me) return viewRegister();
@@ -89,17 +205,20 @@
       '<section class="view">' +
         '<div class="hero"><span class="eyebrow">Dein Ticket für die</span><div class="big-word">abfahrt<span>.</span></div>' +
         '<div class="sub">' + esc(C.eventDate.split('.')[0]) + '<span>/</span>' + esc(C.eventDate.split('.')[1]) + ' · alfons x</div></div>' +
-        '<p class="lede">Melde dich an, schaff im Club <strong>3 Challenges</strong> und du landest im Lostopf für <strong>' + esc(C.prize) + '</strong>.</p>' +
+        '<p class="lede">Gewinne <strong>' + esc(C.prize) + '</strong>! So einfach geht’s:</p>' +
+        '<ol class="steps"><li><b>Anmelden</b><span>Spaßname + Instagram – dauert 20 Sekunden.</span></li>' +
+        '<li><b>3 Challenges machen</b><span>Foto, Sterne, Pose – alles hier in der App.</span></li>' +
+        '<li><b>Um ' + esc(C.drawTime) + ' Uhr gewinnen</b><span>Der DJ lost aus. Du musst im Club sein.</span></li></ol>' +
         '<div class="counter" id="counter" hidden><span class="n" id="count">0</span><span>sind schon dabei</span></div>' +
         '<form id="reg" novalidate>' +
           '<h1 style="font-size:34px">ticket lösen.</h1>' +
           '<div class="field"><label for="fn">Dein Spaßname</label><input class="input" id="fn" name="fn" maxlength="24" autocomplete="off" placeholder="z. B. Nachtfalke" required><small>Bitte nicht dein echter Name – so wirst du bei der Ziehung aufgerufen.</small></div>' +
           '<div class="field"><label for="ig">Dein Instagram</label><div class="input-at"><span>@</span><input class="input" id="ig" name="ig" maxlength="30" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="deinname" required value="' + esc(prefill) + '"></div><small>Brauchen wir, um deine Story bei der Ziehung zu finden.</small></div>' +
-          '<div class="field"><label for="song">Dein Song heute</label><input class="input" id="song" name="song" maxlength="60" placeholder="z. B. Mr. Brightside"></div>' +
-          '<div class="field"><label for="move">Dein Party-Move</label><input class="input" id="move" name="move" maxlength="60" placeholder="z. B. Luftgitarre"></div>' +
+          '<div class="field"><label for="song">Dein Song heute (optional)</label><input class="input" id="song" name="song" maxlength="60" placeholder="z. B. Mr. Brightside"></div>' +
+          '<div class="field"><label for="move">Dein Party-Move (optional)</label><input class="input" id="move" name="move" maxlength="60" placeholder="z. B. Luftgitarre"></div>' +
           '<label class="check" for="ok"><input type="checkbox" id="ok" required><span>Ich akzeptiere die <a href="teilnahmebedingungen.html" target="_blank" rel="noopener">Teilnahmebedingungen</a> und habe den <a href="datenschutz.html" target="_blank" rel="noopener">Datenschutzhinweis</a> gelesen.</span></label>' +
           errorBox('reg-err') +
-          '<button class="btn red" id="reg-btn" type="submit">Ticket lösen + Charakter holen</button>' +
+          '<button class="btn red" id="reg-btn" type="submit">Los geht’s</button>' +
           '<p class="muted">Wir speichern nur Spaßname, Instagram-Name und deine erledigten Challenges. Fotos bleiben auf deinem Handy.</p>' +
         '</form>' +
       '</section>' + foot());
@@ -115,7 +234,7 @@
         me = await S.register({ fun_name: fn, ig_handle: $('#ig').value, song: $('#song').value, move: $('#move').value });
         try{ sessionStorage.removeItem('ab_u'); }catch(e){}
         viewCharacter();
-      }catch(e){ showError('reg-err', e.message); busy(btn, false, 'Ticket lösen + Charakter holen'); }
+      }catch(e){ showError('reg-err', e.message); busy(btn, false, 'Los geht’s'); }
     });
   }
 
@@ -145,6 +264,7 @@
     render(top() + '<section class="view">' + drawn + charCard(me, true) +
       '<div><div class="progress-head"><span class="eyebrow">Deine Mission</span><span class="n">' + n + '<span>/3</span></span></div>' +
       '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="' + n + '"><i style="width:' + (n / 3 * 100) + '%"></i></div></div>' +
+      (n < 3 ? '<p class="howto">👇 <b>Tippe auf eine Challenge.</b> Mach sie, teile sie als Story und markiere ' + esc(HANDLE) + '. Alle 3 erledigt = du bist im Lostopf.</p>' : '') +
       '<ul class="tasks" style="list-style:none;margin:0;padding:0">' + tasks + '</ul>' + pot +
       '<div class="hint"><span aria-hidden="true">📌</span><span>Storys zählen nur mit Markierung <b>' + esc(HANDLE) + '</b>. Das Team prüft das bei der Ziehung.</span></div>' +
       '<div class="vibe-live" id="vibe-live" hidden><span class="eyebrow">Live-Stimmung</span><div class="avg"><span class="n" id="v-avg"></span><span class="muted" id="v-count"></span></div><ul id="v-list"></ul></div>' +
@@ -217,7 +337,10 @@
   }
 
   function photoTools(key){
-    return '<label class="btn red" for="cam" id="cam-label">Foto aufnehmen</label>' +
+    return '<ol class="steps compact"><li><b>Foto machen</b><span>Der Abfahrt-Rahmen kommt automatisch drauf.</span></li>' +
+      '<li><b>„In Story teilen“ drücken</b><span>Dann Instagram → Story wählen.</span></li>' +
+      '<li><b>' + esc(HANDLE) + ' markieren & posten</b><span>Die Erwähnung auf das Feld „hier alfons x markieren“ setzen.</span></li></ol>' +
+      '<label class="btn red" for="cam" id="cam-label">Foto aufnehmen</label>' +
       '<input id="cam" type="file" accept="image/*" capture="environment" hidden>' +
       '<img class="preview" id="preview" alt="Dein Foto mit Abfahrt-Rahmen" hidden>' +
       '<div class="hint" id="tag-hint" hidden><span aria-hidden="true">👉</span><span>Siehst du oben im Bild das gestrichelte Feld <b>„hier alfons x markieren“</b>? Setz genau dort in Instagram die Erwähnung <b>' + esc(HANDLE) + '</b> drauf. Der Name ist schon kopiert – einfach einfügen.</span></div>' +
@@ -310,5 +433,5 @@
     tick(); clockTimer = setInterval(tick, 1000);
   }
 
-  boot();
+  onRoute();
 })();

@@ -38,7 +38,7 @@ h1{font-size:clamp(40px,12vw,56px)}
 h2{font-size:clamp(30px,9vw,40px)}
 h3{font-size:22px;font-weight:700;line-height:1.1}
 
-.app{max-width:480px;margin:0 auto;padding:20px 16px 48px;display:grid;gap:22px}
+.app{max-width:480px;margin:0 auto;padding:20px 16px calc(96px + env(safe-area-inset-bottom,0px));display:grid;gap:22px}
 .view{display:grid;gap:20px}
 
 /* Kopf */
@@ -180,6 +180,83 @@ button.task:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .confirm p{color:var(--ash);font-size:14.5px}
 .confirm p b{font-family:var(--body);font-size:inherit;text-transform:none;color:var(--bone)}
 .btn.danger{background:#b3261e;color:#fff}
+
+/* Tab-Leiste */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,1fr);
+  background:rgba(13,7,6,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line-strong);
+  padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+.tabbar a{display:grid;justify-items:center;gap:3px;padding:7px 2px;border-radius:12px;color:var(--ash);text-decoration:none;font-size:12px;font-weight:600}
+.tabbar svg{width:24px;height:24px}
+.tabbar a[aria-current="page"]{color:#fff;background:rgba(229,64,42,.18)}
+.tabbar a[aria-current="page"] svg{color:var(--signal)}
+.tabbar a:focus-visible{outline:2px solid var(--signal);outline-offset:-2px}
+
+/* Einfache Schritt-Anleitung */
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:38px 1fr;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--night-2)}
+.steps li::before{content:counter(s);width:38px;height:38px;border-radius:50%;background:var(--signal);color:#fff;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:18px;grid-row:span 2}
+.steps b{font-size:16px}
+.steps span{color:var(--ash);font-size:14px;grid-column:2}
+.steps.compact li{padding:10px 12px}
+.howto{font-size:15px;color:var(--ash);padding:12px 14px;border-radius:12px;background:var(--night-2);border:1px solid var(--line)}
+.howto b{color:var(--bone)}
+.example-note{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;color:#ffd9a8;border:1px dashed rgba(255,190,90,.45);border-radius:10px;padding:7px 10px;text-align:center}
+
+/* Ablauf */
+.timeline{list-style:none;margin:0;padding:0;display:grid}
+.slot{display:grid;grid-template-columns:64px 1fr;gap:14px;padding:14px 0;border-bottom:1px solid var(--line);position:relative}
+.slot .t{font-family:var(--display);font-weight:800;font-size:20px;font-variant-numeric:tabular-nums;line-height:1.2}
+.slot .d{display:grid;gap:3px}
+.slot b{font-size:17px}
+.slot small{color:var(--ash);font-size:14px}
+.slot.hl .t,.slot.hl b{color:var(--signal)}
+.slot.past{opacity:.45}
+.slot.now{background:rgba(229,64,42,.1);border-radius:12px;padding-inline:10px;margin-inline:-10px;border-bottom-color:transparent}
+.slot .chip{margin-top:4px}
+
+/* Lageplan */
+.map-wrap{border:1px solid var(--line-strong);border-radius:16px;padding:10px;background:var(--night-2)}
+.map-img{width:100%;border-radius:10px;display:block}
+.floorplan{width:100%;height:auto;display:block}
+.floorplan .wall{fill:none;stroke:var(--bone);stroke-width:3}
+.floorplan .zone{fill:rgba(243,234,230,.06);stroke:rgba(243,234,230,.35);stroke-width:1.5}
+.floorplan .zone.strong{fill:rgba(229,64,42,.25);stroke:var(--signal)}
+.floorplan .zone.dance{fill:rgba(229,64,42,.12);stroke:rgba(229,64,42,.6);stroke-dasharray:6 5}
+.floorplan .outside{fill:url(#hatch);stroke:rgba(243,234,230,.3);stroke-dasharray:4 4}
+.floorplan .hatch{stroke:rgba(243,234,230,.2);stroke-width:2}
+.floorplan .door{fill:var(--night-2)}
+.floorplan .lbl{fill:var(--bone);font-family:var(--display);font-weight:700;font-size:16px;text-anchor:middle}
+.floorplan .lbl.small{font-size:12px;fill:var(--ash)}
+.floorplan .exit{fill:var(--ok);font-family:var(--mono);font-size:10px;font-weight:600}
+.floorplan .pin circle{fill:var(--signal);stroke:#fff;stroke-width:2}
+.floorplan .pin text{fill:#fff;font-family:var(--display);font-weight:800;font-size:13px;text-anchor:middle}
+.legend{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.legend li{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:center}
+.legend .num{width:28px;height:28px;border-radius:50%;background:var(--signal);color:#fff;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:13px}
+.legend b{display:block}
+.legend small{color:var(--ash);font-size:13.5px}
+
+/* Regeln */
+.rules{border-radius:18px;padding:18px;display:grid;gap:12px}
+.rules h2{font-size:28px}
+.rules ul{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.rules li{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start;font-size:16px}
+.rules .sym{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:15px}
+.rules.no{background:rgba(229,64,42,.1);border:1px solid rgba(229,64,42,.45)}
+.rules.no h2{color:var(--signal)}
+.rules.no .sym{background:var(--signal);color:#fff}
+.rules.yes{background:var(--night-2);border:1px solid var(--line)}
+.rules.yes .sym{background:var(--ok);color:var(--night)}
+.help{border-radius:18px;padding:18px;background:var(--bone);color:var(--night);display:grid;gap:6px}
+.help .eyebrow{color:#7a1a12}
+.help b{font-family:var(--display);font-weight:800;font-size:26px;text-transform:lowercase;line-height:1}
+.help p{color:#3a2622;font-size:15.5px}
+.zero{border-radius:18px;padding:22px 18px;background:var(--signal);color:#fff;display:grid;gap:8px;text-align:center}
+.zero .z{font-family:var(--display);font-weight:800;font-size:64px;line-height:.85;letter-spacing:-.03em;text-transform:lowercase}
+.zero .zt{font-family:var(--mono);font-weight:600;letter-spacing:.3em;text-transform:uppercase;font-size:13px}
+.zero p{font-size:15.5px}
+.zero .en{font-size:12.5px;opacity:.85}
+.sign{text-align:center;font-family:var(--display);font-weight:800;font-size:22px;color:var(--signal);text-transform:lowercase}
 
 /* Fuß */
 .foot{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;font-size:12.5px;color:var(--ash-dim);padding-top:8px}
