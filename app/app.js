@@ -48,6 +48,10 @@
       PRIZES.map(function(p){ return '<li><span class="pi" aria-hidden="true">' + esc(p.icon) + '</span><span class="pc">' + p.count + '×</span><b>' + esc(p.title) + '</b><small>' + esc(p.sub) + '</small></li>'; }).join('') +
       '</ul></div>';
   }
+  function rulesCard(){
+    return '<a class="rules-card" href="#regeln"><span class="ri" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6z"/><path d="M9 12l2 2 4-4" stroke-linecap="round"/></svg></span>' +
+      '<span><b>Zuallererst:</b> Schau dir unsere <u>Rules</u> an – sie gelten ausnahmslos für jeden!</span><span class="ra" aria-hidden="true">›</span></a>';
+  }
   function errorBox(id){ return '<p class="error" id="' + id + '" role="alert" hidden></p>'; }
   function showError(id, msg){ var el = $('#' + id); if (el){ el.textContent = msg; el.hidden = false; } }
   function busy(btn, on, label){ if (!btn) return; btn.disabled = on; if (label) btn.textContent = label; }
@@ -234,6 +238,7 @@
       '<section class="view">' +
         '<div class="hero"><span class="eyebrow">Dein Ticket für die</span><div class="big-word">abfahrt<span>.</span></div>' +
         '<div class="sub">' + esc(C.eventDate.split('.')[0]) + '<span>/</span>' + esc(C.eventDate.split('.')[1]) + ' · alfons x</div></div>' +
+        rulesCard() +
         prizeGrid() +
         '<p class="lede">Mitmachen ist ganz einfach:</p>' +
         '<ol class="steps"><li><b>Anmelden</b><span>Spaßname + Instagram – dauert 20 Sekunden.</span></li>' +
@@ -289,7 +294,7 @@
       : '<div class="pot"><b>noch ' + (3 - n) + ' bis zum lostopf.</b><p>Tippe oben auf eine Challenge und leg los.</p></div>';
     var drawn = me.status === 'drawn'
       ? '<div class="drawn" role="status"><span class="eyebrow">Achtung</span><b>du wurdest gezogen!</b><p class="status">Das Team prüft gerade deine Story. Bleib in der Nähe vom DJ-Pult.</p></div>' : '';
-    render(top() + ticker() + '<section class="view">' + drawn + charCard(me, true) +
+    render(top() + ticker() + '<section class="view">' + drawn + rulesCard() + charCard(me, true) +
       '<div><div class="progress-head"><span class="eyebrow">Deine Mission</span><span class="n">' + n + '<span>/3</span></span></div>' +
       '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="' + n + '"><i style="width:' + (n / 3 * 100) + '%"></i></div></div>' +
       (n < 3 ? '<p class="howto">👇 <b>Tippe auf eine Challenge.</b> Mach sie, teile sie als Story und markiere ' + esc(HANDLE) + '. Alle 3 erledigt = du bist im Lostopf.</p>' : '') +
