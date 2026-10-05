@@ -38,7 +38,7 @@ h1{font-size:clamp(40px,12vw,56px)}
 h2{font-size:clamp(30px,9vw,40px)}
 h3{font-size:22px;font-weight:700;line-height:1.1}
 
-.app{max-width:480px;margin:0 auto;padding:20px 16px calc(96px + env(safe-area-inset-bottom,0px));display:grid;gap:22px}
+.app{max-width:480px;margin:0 auto;padding:20px 16px calc(110px + env(safe-area-inset-bottom,0px));display:grid;gap:22px}
 .view{display:grid;gap:20px}
 
 /* Kopf */
@@ -186,15 +186,16 @@ button.task:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .confirm p b{font-family:var(--body);font-size:inherit;text-transform:none;color:var(--bone)}
 .btn.danger{background:#b3261e;color:#fff}
 
-/* Tab-Leiste */
-.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,1fr);
-  background:rgba(13,7,6,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--line-strong);
-  padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
-.tabbar a{display:grid;justify-items:center;gap:3px;padding:7px 2px;border-radius:12px;color:var(--ash);text-decoration:none;font-size:12px;font-weight:600}
-.tabbar svg{width:24px;height:24px}
-.tabbar a[aria-current="page"]{color:#fff;background:rgba(229,64,42,.18)}
-.tabbar a[aria-current="page"] svg{color:var(--signal)}
-.tabbar a:focus-visible{outline:2px solid var(--signal);outline-offset:-2px}
+/* Tab-Leiste (unten, gut sichtbar) */
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;
+  background:linear-gradient(180deg,#2b0e0a,#160806);border-top:2px solid var(--signal);
+  box-shadow:0 -14px 34px rgba(0,0,0,.65);padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px))}
+.tabbar a{display:grid;justify-items:center;gap:3px;padding:8px 2px;border-radius:14px;color:#efe1dc;text-decoration:none;font-size:13px;font-weight:700;letter-spacing:.01em}
+.tabbar svg{width:26px;height:26px}
+.tabbar a[aria-current="page"]{color:#fff;background:var(--signal);box-shadow:0 6px 18px -6px rgba(229,64,42,.8)}
+.tabbar a[aria-current="page"] svg{color:#fff}
+.tabbar a:not([aria-current="page"]):active{background:rgba(229,64,42,.2)}
+.tabbar a:focus-visible{outline:2px solid #fff;outline-offset:-2px}
 
 /* Einfache Schritt-Anleitung */
 .steps{list-style:none;margin:0;padding:0;display:grid;gap:10px;counter-reset:s}
