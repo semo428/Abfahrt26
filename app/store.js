@@ -146,7 +146,7 @@
       var fn = d.fun_name.trim(), ig = normHandle(d.ig_handle);
       var character = null;
       try{
-        var r = await client().functions.invoke('character', { body: { fun_name: fn, song: (d.song||'').slice(0,60), move: (d.move||'').slice(0,60) } });
+        var r = await client().functions.invoke('character', { body: { fun_name: fn } });
         if (!r.error && r.data && r.data.title) character = r.data;
       }catch(e){}
       if (!character) character = localCharacter(fn, d.song, d.move);

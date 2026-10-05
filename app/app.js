@@ -214,8 +214,6 @@
           '<h1 style="font-size:34px">ticket lösen.</h1>' +
           '<div class="field"><label for="fn">Dein Spaßname</label><input class="input" id="fn" name="fn" maxlength="24" autocomplete="off" placeholder="z. B. Nachtfalke" required><small>Bitte nicht dein echter Name – so wirst du bei der Ziehung aufgerufen.</small></div>' +
           '<div class="field"><label for="ig">Dein Instagram</label><div class="input-at"><span>@</span><input class="input" id="ig" name="ig" maxlength="30" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="deinname" required value="' + esc(prefill) + '"></div><small>Brauchen wir, um deine Story bei der Ziehung zu finden.</small></div>' +
-          '<div class="field"><label for="song">Dein Song heute (optional)</label><input class="input" id="song" name="song" maxlength="60" placeholder="z. B. Mr. Brightside"></div>' +
-          '<div class="field"><label for="move">Dein Party-Move (optional)</label><input class="input" id="move" name="move" maxlength="60" placeholder="z. B. Luftgitarre"></div>' +
           '<label class="check" for="ok"><input type="checkbox" id="ok" required><span>Ich akzeptiere die <a href="teilnahmebedingungen.html" target="_blank" rel="noopener">Teilnahmebedingungen</a> und habe den <a href="datenschutz.html" target="_blank" rel="noopener">Datenschutzhinweis</a> gelesen.</span></label>' +
           errorBox('reg-err') +
           '<button class="btn red" id="reg-btn" type="submit">Los geht’s</button>' +
@@ -231,7 +229,7 @@
       if (BLOCK.test(fn)) return showError('reg-err', 'Such dir bitte einen anderen Spaßnamen aus.');
       busy(btn, true, 'Dein Charakter wird erstellt …');
       try{
-        me = await S.register({ fun_name: fn, ig_handle: $('#ig').value, song: $('#song').value, move: $('#move').value });
+        me = await S.register({ fun_name: fn, ig_handle: $('#ig').value });
         try{ sessionStorage.removeItem('ab_u'); }catch(e){}
         viewCharacter();
       }catch(e){ showError('reg-err', e.message); busy(btn, false, 'Los geht’s'); }
