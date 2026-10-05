@@ -241,6 +241,45 @@ button.task:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .legend b{display:block}
 .legend small{color:var(--ash);font-size:13.5px}
 
+/* Umgebungsplan (OpenStreetMap) */
+.map-wrap.site{padding:0;overflow:hidden}
+.sitemap{width:100%;height:auto;display:block}
+.sitemap .ground{fill:#1a100e}
+.sitemap .green{fill:#1d2a1c;stroke:none}
+.sitemap .parking{fill:url(#pk);stroke:rgba(243,234,230,.15);stroke-width:.8}
+.sitemap .pk-bg{fill:#221715}
+.sitemap .pk-line{stroke:rgba(243,234,230,.08);stroke-width:1}
+.sitemap .bld{fill:#3a2a27;stroke:#4d3935;stroke-width:.8}
+.sitemap .station{fill:var(--signal);stroke:#fff;stroke-width:1.6}
+.sitemap .rail{fill:none;stroke:#6e5a55;stroke-width:1.6;stroke-dasharray:5 3}
+.sitemap .platform{fill:#2c201e;stroke:#5a4743;stroke-width:.8}
+.sitemap .road-casing{fill:none;stroke:#0d0706;stroke-linecap:round;stroke-linejoin:round}
+.sitemap .road{fill:none;stroke:#5e4b47;stroke-linecap:round;stroke-linejoin:round}
+.sitemap .foot{fill:none;stroke:rgba(243,234,230,.18);stroke-width:1;stroke-dasharray:2 2}
+.sitemap .st{fill:var(--bone);font-family:var(--body);font-weight:600;font-size:8.5px;text-anchor:middle;paint-order:stroke;stroke:#0d0706;stroke-width:2.6px;stroke-linejoin:round}
+.sitemap .venue{fill:#fff;font-family:var(--display);font-weight:800;font-size:13px;text-anchor:middle;paint-order:stroke;stroke:rgba(126,26,18,.9);stroke-width:3px}
+.sitemap .area{fill:var(--ash);font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;text-anchor:middle}
+.sitemap .poi circle{fill:#2f6fd6;stroke:#fff;stroke-width:1.4}
+.sitemap .poi text{fill:#fff;font-family:var(--display);font-weight:800;font-size:11px;text-anchor:middle}
+.sitemap .poi.bus rect{fill:var(--bone)}
+.sitemap .poi.bus text{fill:var(--night);font-size:9px}
+.sitemap .entrance circle{fill:#fff;stroke:var(--signal);stroke-width:2}
+.sitemap .entrance path{stroke:var(--signal);stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.sitemap .ent-lbl{fill:#fff;font-family:var(--display);font-weight:800;font-size:12px;text-anchor:middle;paint-order:stroke;stroke:#0d0706;stroke-width:3px}
+.sitemap .north path{fill:var(--bone)}
+.sitemap .north text{fill:var(--bone);font-family:var(--mono);font-size:9px;text-anchor:middle}
+.sitemap .scale path{stroke:var(--bone);stroke-width:2}
+.sitemap .scale text{fill:var(--bone);font-family:var(--mono);font-size:8.5px;text-anchor:middle}
+.sitemap .attr{fill:rgba(243,234,230,.55);font-family:var(--body);font-size:7.5px;text-anchor:end}
+.site-legend{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.site-legend li{display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:center;font-size:14.5px;color:var(--ash)}
+.site-legend b{color:var(--bone)}
+.site-legend .sw{width:30px;height:22px;border-radius:6px;display:grid;place-items:center}
+.site-legend .sw.station{background:var(--signal);border:1.5px solid #fff}
+.site-legend .sw.ent{width:22px;border-radius:50%;background:#fff;border:2px solid var(--signal)}
+.site-legend .sw.guard svg{width:16px;height:28px}
+.site-legend .sw.bus{background:var(--bone);color:var(--night);font-family:var(--display);font-weight:800;font-size:10px}
+
 /* Regeln */
 .rules{border-radius:18px;padding:18px;display:grid;gap:12px}
 .rules h2{font-size:28px}

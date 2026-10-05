@@ -103,9 +103,17 @@
   }
   function viewMap(){
     var img = C.mapImage ? '<img class="map-img" src="' + esc(C.mapImage) + '" alt="Lageplan alfons x">' : mapSvg();
+    var site = window.ABFAHRT_SITE_SVG ? '<div><span class="eyebrow">So findest du uns</span><h2 style="margin-top:6px">umgebung.</h2></div>' +
+      '<div class="map-wrap site">' + window.ABFAHRT_SITE_SVG + '</div>' +
+      '<ul class="site-legend"><li><span class="sw station"></span><span><b>alfons x</b> im Bahnhofsgebäude, Bahnhofstraße 7</span></li>' +
+      '<li><span class="sw ent"></span><span><b>Eingang</b> auf der Straßenseite (Busbahnhof)</span></li>' +
+      '<li><span class="sw guard"><svg viewBox="-8 -16 16 30" aria-hidden="true"><circle cx="0" cy="-11" r="3.6" fill="#FFD23F"/><path d="M0 -7 L0 3 M-5.5 -3 L5.5 -3 M0 3 L-4 11 M0 3 L4 11" stroke="#FFD23F" stroke-width="2.6" stroke-linecap="round" fill="none"/></svg></span><span><b>Security</b> – hier bekommst du Hilfe</span></li>' +
+      '<li><span class="sw bus">BUS</span><span><b>Busbahnhof</b> direkt vor der Tür</span></li></ul>' : '';
     var legend = MAP_POINTS.map(function(p, i){ return '<li><span class="num">' + (i + 1) + '</span><span><b>' + esc(p[0]) + '</b>' + (p[1] ? '<small>' + esc(p[1]) + '</small>' : '') + '</span></li>'; }).join('');
     render(top() + '<section class="view"><div><span class="eyebrow">Wo ist was?</span><h1>lageplan.</h1></div>' +
-      exampleNote(C.mapIsExample, 'der echte Lageplan') +
+      site +
+      '<div><span class="eyebrow">Im Club</span><h2 style="margin-top:6px">drinnen.</h2></div>' +
+      exampleNote(C.mapIsExample, 'der echte Plan von drinnen') +
       '<div class="map-wrap">' + img + '</div>' +
       '<ol class="legend">' + legend + '</ol>' +
       '<p class="muted"><b style="color:var(--ok)">EXIT</b> = Notausgang. Im Notfall den grünen Schildern folgen.</p>' +
