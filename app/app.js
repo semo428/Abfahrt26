@@ -83,6 +83,7 @@
     ['Raucherbereich', 'Nur draußen – drinnen wird nicht geraucht']
   ];
   function mapSvg(){
+    function guard(x, y){ return '<g transform="translate(' + x + ' ' + y + ')"><circle cx="0" cy="-11" r="3.6" fill="#FFD23F"/><path d="M0 -7 L0 3 M-5.5 -3 L5.5 -3 M0 3 L-4 11 M0 3 L4 11" stroke="#FFD23F" stroke-width="2.6" stroke-linecap="round" fill="none"/></g>'; }
     function pin(n, x, y){ return '<g class="pin"><circle cx="' + x + '" cy="' + y + '" r="13"/><text x="' + x + '" y="' + (y + 5) + '">' + n + '</text></g>'; }
     return '<svg class="floorplan" viewBox="0 0 400 470" role="img" aria-label="Beispiel-Lageplan des Clubs mit 8 nummerierten Bereichen">' +
       '<defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" class="hatch"/></pattern></defs>' +
@@ -98,24 +99,18 @@
       '<rect x="190" y="404" width="70" height="20" class="door"/><text x="225" y="452" class="lbl">Eingang</text>' +
       '<rect x="306" y="320" width="20" height="44" class="door"/>' +
       '<text x="22" y="30" class="exit">EXIT</text><text x="286" y="408" class="exit">EXIT</text>' +
+      guard(192, 394) + guard(258, 394) +
       pin(1, 225, 390) + pin(2, 282, 194) + pin(3, 47, 112) + pin(4, 120, 112) + pin(5, 214, 44) + pin(6, 282, 46) + pin(7, 48, 318) + pin(8, 357, 270) +
       '</svg>';
   }
   function viewMap(){
     var img = C.mapImage ? '<img class="map-img" src="' + esc(C.mapImage) + '" alt="Lageplan alfons x">' : mapSvg();
-    var site = window.ABFAHRT_SITE_SVG ? '<div><span class="eyebrow">So findest du uns</span><h2 style="margin-top:6px">umgebung.</h2></div>' +
-      '<div class="map-wrap site">' + window.ABFAHRT_SITE_SVG + '</div>' +
-      '<ul class="site-legend"><li><span class="sw station"></span><span><b>alfons x</b> im Bahnhofsgebäude, Bahnhofstraße 7</span></li>' +
-      '<li><span class="sw ent"></span><span><b>Eingang</b> auf der Straßenseite (Busbahnhof)</span></li>' +
-      '<li><span class="sw guard"><svg viewBox="-8 -16 16 30" aria-hidden="true"><circle cx="0" cy="-11" r="3.6" fill="#FFD23F"/><path d="M0 -7 L0 3 M-5.5 -3 L5.5 -3 M0 3 L-4 11 M0 3 L4 11" stroke="#FFD23F" stroke-width="2.6" stroke-linecap="round" fill="none"/></svg></span><span><b>Security</b> – hier bekommst du Hilfe</span></li>' +
-      '<li><span class="sw bus">BUS</span><span><b>Busbahnhof</b> direkt vor der Tür</span></li></ul>' : '';
     var legend = MAP_POINTS.map(function(p, i){ return '<li><span class="num">' + (i + 1) + '</span><span><b>' + esc(p[0]) + '</b>' + (p[1] ? '<small>' + esc(p[1]) + '</small>' : '') + '</span></li>'; }).join('');
     render(top() + '<section class="view"><div><span class="eyebrow">Wo ist was?</span><h1>lageplan.</h1></div>' +
-      site +
-      '<div><span class="eyebrow">Im Club</span><h2 style="margin-top:6px">drinnen.</h2></div>' +
-      exampleNote(C.mapIsExample, 'der echte Plan von drinnen') +
+      exampleNote(C.mapIsExample, 'der echte Lageplan') +
       '<div class="map-wrap">' + img + '</div>' +
       '<ol class="legend">' + legend + '</ol>' +
+      '<p class="muted guard-note"><svg viewBox="-8 -16 16 30" aria-hidden="true"><circle cx="0" cy="-11" r="3.6" fill="#FFD23F"/><path d="M0 -7 L0 3 M-5.5 -3 L5.5 -3 M0 3 L-4 11 M0 3 L4 11" stroke="#FFD23F" stroke-width="2.6" stroke-linecap="round" fill="none"/></svg><span><b style="color:#FFD23F">Gelbe Figuren</b> = Security. Dort bekommst du Hilfe.</span></p>' +
       '<p class="muted"><b style="color:var(--ok)">EXIT</b> = Notausgang. Im Notfall den grünen Schildern folgen.</p>' +
       '<a class="btn ghost" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(C.address) + '" target="_blank" rel="noopener">Route planen (Google Maps)</a>' +
       '</section>' + foot());
