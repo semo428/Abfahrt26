@@ -25,8 +25,7 @@
   function render(html){ stopTimers(); root.innerHTML = html; window.scrollTo(0, 0); var h = root.querySelector('h1,h2'); if (h){ h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } }
   function top(){
     return '<header class="top"><a class="brand" href="#mission" aria-label="Zur Mission"><img src="logo.png" alt=""><b>abfahrt</b></a>' +
-      '<span class="date"><b>' + esc(C.eventDate.slice(0, 5).replace('.', '/')) + '</b> · alfons x</span></header>' +
-      (S.isDemo ? '<div class="demo-banner">DEMO-MODUS · Daten bleiben nur auf diesem Gerät</div>' : '');
+      '<span class="date"><b>' + esc(C.eventDate.slice(0, 5).replace('.', '/')) + '</b> · alfons x</span></header>';
   }
   function foot(){
     return '<footer class="foot"><a href="teilnahmebedingungen.html">Teilnahmebedingungen</a><a href="datenschutz.html">Datenschutz</a><span>alfons x · Sigmaringen</span></footer>';
@@ -127,13 +126,15 @@
   function viewMap(){
     var img = C.mapImage ? '<img class="map-img" src="' + esc(C.mapImage) + '" alt="Lageplan alfons x">' : mapSvg();
     var legend = MAP_POINTS.map(function(p, i){ return '<li><span class="num">' + (i + 1) + '</span><span><b>' + esc(p[0]) + '</b>' + (p[1] ? '<small>' + esc(p[1]) + '</small>' : '') + '</span></li>'; }).join('');
-    render(top() + '<section class="view"><div><span class="eyebrow">Wo ist was?</span><h1>lageplan.</h1></div>' +
+    var route = '<a class="route-card" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(C.address) + '" target="_blank" rel="noopener">' +
+      '<span class="ri" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg></span>' +
+      '<span><b>Route planen</b><small>Öffnet Google Maps mit dem Weg zum alfons x</small></span><span class="ra" aria-hidden="true">›</span></a>';
+    render(top() + '<section class="view">' + route + '<div><span class="eyebrow">Wo ist was?</span><h1>lageplan.</h1></div>' +
       exampleNote(C.mapIsExample, 'der echte Lageplan') +
       '<div class="map-wrap">' + img + '</div>' +
       '<ol class="legend">' + legend + '</ol>' +
       '<p class="muted guard-note"><svg viewBox="-8 -16 16 30" aria-hidden="true"><circle cx="0" cy="-11" r="3.6" fill="#FFD23F"/><path d="M0 -7 L0 3 M-5.5 -3 L5.5 -3 M0 3 L-4 11 M0 3 L4 11" stroke="#FFD23F" stroke-width="2.6" stroke-linecap="round" fill="none"/></svg><span><b style="color:#FFD23F">Gelbe Figuren</b> = Security. Dort bekommst du Hilfe.</span></p>' +
       '<p class="muted"><b style="color:var(--ok)">EXIT</b> = Notausgang. Im Notfall den grünen Schildern folgen.</p>' +
-      '<a class="btn ghost" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(C.address) + '" target="_blank" rel="noopener">Route planen (Google Maps)</a>' +
       '</section>' + foot());
   }
 

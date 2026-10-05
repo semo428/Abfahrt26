@@ -8,8 +8,7 @@
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
   function $(s){ return root.querySelector(s); }
   function top(){
-    return '<header class="top"><span class="brand"><img src="logo.png" alt=""><b>abfahrt · admin</b></span><span class="date"><b>Ziehung</b> ' + esc(C.drawTime) + '</span></header>' +
-      (S.isDemo ? '<div class="demo-banner">DEMO-MODUS · zieht nur aus Anmeldungen auf diesem Gerät</div>' : '');
+    return '<header class="top"><span class="brand"><img src="logo.png" alt=""><b>abfahrt · admin</b></span><span class="date"><b>Ziehung</b> ' + esc(C.drawTime) + '</span></header>';
   }
   function err(msg){ var e = $('#err'); if (e){ e.textContent = msg; e.hidden = false; } }
 
