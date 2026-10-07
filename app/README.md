@@ -37,7 +37,7 @@ Ideal zum Durchklicken – die Admin-Ziehung zieht dann nur aus Anmeldungen auf 
 | Wofür | URL |
 |---|---|
 | ManyChat-DM | `https://<pages>/?u={{Instagram Username}}` → füllt den Instagram-Namen vor |
-| Direkt zu einer Challenge (optional, z. B. für eine Story) | `https://<pages>/?station=random` · `vibe` · `pose` |
+| Direkt zu einer Challenge (optional, z. B. für eine Story) | `https://<pages>/?station=photo` · `vibe` |
 | Team | `https://<pages>/admin.html` |
 
 Die Challenges startet man direkt im Dashboard der App – keine NFC-Tags oder QR-Codes nötig.

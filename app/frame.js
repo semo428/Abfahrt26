@@ -3,9 +3,8 @@
   var C = window.ABFAHRT_CONFIG;
   var HANDLE = '@' + C.instagram;
   var CH = {
-    random: { n: 1, name: 'random-foto', file: 'abfahrt-challenge1-random-foto.jpg' },
-    vibe:   { n: 2, name: 'vibe-check',  file: 'abfahrt-challenge2-vibe-check.jpg' },
-    pose:   { n: 3, name: 'best pose',   file: 'abfahrt-challenge3-best-pose.jpg' }
+    photo:  { n: 1, name: 'abfahrt-foto', file: 'abfahrt-challenge1-foto.jpg' },
+    vibe:   { n: 2, name: 'vibe-check',  file: 'abfahrt-challenge2-vibe-check.jpg' }
   };
   var W = 1080, H = 1920;
   var canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;

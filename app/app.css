@@ -314,6 +314,19 @@ button.task:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .prizes b{font-size:13.5px;line-height:1.2}
 .prizes small{color:var(--ash);font-size:12px;line-height:1.2}
 
+/* Live-Vibes-Fenster (klein, wischbar) */
+.vibes{border:1px solid var(--line);border-radius:16px;padding:12px 0 12px 14px;background:var(--night-2);display:grid;gap:8px}
+.vibes-head{display:flex;justify-content:space-between;align-items:baseline;padding-right:14px}
+.vibes-avg{font-family:var(--display);font-weight:800;font-size:15px}
+.vibes-avg em{font-style:normal;color:var(--signal)}
+.vibes-strip{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-right:14px}
+.vibes-strip::-webkit-scrollbar{display:none}
+.vb{flex:0 0 72%;scroll-snap-align:start;border-radius:12px;padding:9px 12px;background:linear-gradient(160deg,rgba(229,64,42,.16),rgba(229,64,42,.04));border:1px solid rgba(229,64,42,.3);display:grid;gap:2px;min-height:76px}
+.vb .vs{color:var(--signal);font-size:13px;letter-spacing:1px}
+.vb .vs i{font-style:normal;color:var(--ash-dim)}
+.vb p{font-size:14.5px;line-height:1.3;color:var(--bone);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.vb small{font-size:12px;color:var(--ash)}
+
 /* Fuß */
 .foot{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;font-size:12.5px;color:var(--ash-dim);padding-top:8px}
 .foot a{color:var(--ash)}

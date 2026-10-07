@@ -3,17 +3,16 @@
   var C = window.ABFAHRT_CONFIG, S = window.AbfahrtStore, F = window.AbfahrtFrame;
   var root = document.getElementById('app');
   var HANDLE = '@' + C.instagram;
-  var me = null, pollTimer = null, clockTimer = null;
+  var me = null, pollTimer = null, clockTimer = null, vibeTimer = null;
 
   var CH = {
-    random: { n: 1, title: 'random-foto', label: 'Random-Foto', sub: 'Foto mit einer fremden Person', task: 'Mach ein Foto mit jemandem, den du heute zum ersten Mal siehst, und poste es als Story mit ' + HANDLE + '.',
-      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><circle cx="16" cy="8" r="3"/><path d="M2.5 20c.7-3.4 3-5 5.5-5s4.8 1.6 5.5 5M10.5 20c.7-3.4 3-5 5.5-5s4.8 1.6 5.5 5"/></svg>' },
+    photo: { n: 1, title: 'abfahrt-foto', label: 'Abfahrt-Foto', sub: 'Du & deine Crew', task: 'Poste ein Bild von dir während der Abfahrt – gerne auch mit deiner Crew – als Story mit ' + HANDLE + '.',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8h3l1.5-2.5h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.6"/></svg>' },
     vibe: { n: 2, title: 'vibe-check', label: 'Vibe-Check', sub: 'Sterne + ein Satz', task: 'Wie ist dein Vibe gerade? Sterne vergeben und einen Satz schreiben.',
-      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>' },
-    pose: { n: 3, title: 'best pose', label: 'Best Pose', sub: 'Deine beste Pose als Story', task: 'Mach die Pose, die deiner Meinung nach den Abend gewinnt, und poste sie als Story mit ' + HANDLE + '. Die besten Posen kommen in unsere Story-Umfrage.',
-      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="4.5" r="2"/><path d="M12 7v7M12 9l-6-3M12 9l5 -4M12 14l-4 6M12 14l4 6"/></svg>' }
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>' }
   };
-  var ORDER = ['random', 'vibe', 'pose'];
+  var ORDER = ['photo', 'vibe'];
+  var TOTAL = ORDER.length;
   // Grober Vorfilter im Browser – der eigentliche Filter läuft zusätzlich in der Datenbank (submit_vibe)
   var BLOCK = /(hurensohn|wichser|fotze|schlampe|nutte|missgeburt|spast|behindert|neger|kanake|schwuchtel|fick\s*dich|nazi|heil\s*hitler)/i;
 
@@ -21,7 +20,7 @@
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
   function $(sel){ return root.querySelector(sel); }
   function doneCount(p){ return ORDER.filter(function(k){ return p && p[k + '_at']; }).length; }
-  function stopTimers(){ clearInterval(pollTimer); clearInterval(clockTimer); pollTimer = clockTimer = null; }
+  function stopTimers(){ clearInterval(pollTimer); clearInterval(clockTimer); clearInterval(vibeTimer); clearInterval(typeof vibeAuto !== 'undefined' ? vibeAuto : 0); pollTimer = clockTimer = vibeTimer = null; vibeShownAt = 0; }
   function render(html){ stopTimers(); root.innerHTML = html; window.scrollTo(0, 0); var h = root.querySelector('h1,h2'); if (h){ h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } }
   function top(){
     return '<header class="top"><a class="brand" href="#mission" aria-label="Zur Mission"><img src="logo.png" alt=""><b>abfahrt</b></a>' +
@@ -249,15 +248,17 @@
           '<button class="btn red" id="reg-btn" type="submit">Los geht’s</button>' +
           '<div class="counter" id="counter" hidden><span class="n" id="count">0</span><span>sind schon dabei</span></div>' +
         '</form>' +
+        '<div class="vibes" id="vibes" hidden><div class="vibes-head"><span class="eyebrow">Live-Vibes</span><span class="vibes-avg" id="v-avg"></span></div>' +
+      '<div class="vibes-strip" id="v-strip" aria-live="off"></div></div>' +
         '<div class="sec"><span>Das kannst du gewinnen</span></div>' +
         prizeGrid() +
         '<div class="sec"><span>So läuft’s</span></div>' +
         '<ol class="steps"><li><b>Anmelden</b><span>Spaßname + Instagram – dauert 20 Sekunden.</span></li>' +
-        '<li><b>3 Challenges machen</b><span>Foto, Sterne, Pose – alles hier in der App.</span></li>' +
+        '<li><b>2 Challenges machen</b><span>Foto als Story &amp; Vibe-Check – alles hier in der App.</span></li>' +
         '<li><b>Um ' + esc(C.drawTime) + ' Uhr gewinnen</b><span>Der DJ lost aus. Du musst im Club sein.</span></li></ol>' +
-        '<p class="fineprint">Wir speichern nur Spaßname, Instagram-Name und deine erledigten Challenges. Fotos bleiben auf deinem Handy. Mehr im <a href="datenschutz.html">Datenschutzhinweis</a>.</p>' +
+        '<p class="fineprint">Wir speichern nur Spaßname, Instagram-Name und deine erledigten Challenges. Fotos bleiben auf deinem Handy. Dein Spaßname und dein Vibe sind für andere sichtbar. Mehr im <a href="datenschutz.html">Datenschutzhinweis</a>.</p>' +
       '</section>' + foot());
-    try{ var st = await S.stats(); if (st && st.players > 0){ $('#count').textContent = st.players.toLocaleString('de-DE'); $('#counter').hidden = false; } }catch(e){}
+    refreshStats(); vibeTimer = setInterval(refreshStats, 60000);
     $('#reg').addEventListener('submit', async function(ev){
       ev.preventDefault();
       var btn = $('#reg-btn'), err = $('#reg-err'); err.hidden = true;
@@ -291,19 +292,20 @@
         '<span><b>' + esc(CH[k].label) + '</b><small>' + esc(CH[k].sub) + '</small></span>' +
         '<span class="st">' + (done ? '✓ erledigt' : 'starten<i aria-hidden="true">›</i>') + '</span></button></li>';
     }).join('');
-    var pot = n === 3
+    var pot = n === TOTAL
       ? '<div class="pot in"><b>du bist im lostopf.</b><p>Um ' + esc(C.drawTime) + ' Uhr werden ' + PRIZE_TOTAL + ' Gewinne ausgelost. Der DJ ruft die Gewinner auf – halt dein Handy bereit.</p></div>'
-      : '<div class="pot"><b>noch ' + (3 - n) + ' bis zum lostopf.</b><p>Tippe oben auf eine Challenge und leg los.</p></div>';
+      : '<div class="pot"><b>noch ' + (TOTAL - n) + ' bis zum lostopf.</b><p>Tippe oben auf eine Challenge und leg los.</p></div>';
     var drawn = me.status === 'drawn'
       ? '<div class="drawn" role="status"><span class="eyebrow">Achtung</span><b>du wurdest gezogen!</b><p class="status">Das Team prüft gerade deine Story. Bleib in der Nähe vom DJ-Pult.</p></div>' : '';
     render(top() + ticker() + '<section class="view">' + drawn + rulesCard() + charCard(me, true) +
       '<div class="sec"><span>Deine Mission</span></div>' +
-      '<div><div class="progress-head"><span class="eyebrow">Fortschritt</span><span class="n">' + n + '<span>/3</span></span></div>' +
-      '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="3" aria-valuenow="' + n + '"><i style="width:' + (n / 3 * 100) + '%"></i></div></div>' +
-      (n < 3 ? '<p class="howto">👇 <b>Tippe auf eine Challenge.</b> Mach sie, teile sie als Story und markiere ' + esc(HANDLE) + '. Alle 3 erledigt = du bist im Lostopf.</p>' : '') +
+      '<div><div class="progress-head"><span class="eyebrow">Fortschritt</span><span class="n">' + n + '<span>/' + TOTAL + '</span></span></div>' +
+      '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="' + TOTAL + '" aria-valuenow="' + n + '"><i style="width:' + (n / TOTAL * 100) + '%"></i></div></div>' +
+      (n < TOTAL ? '<p class="howto">👇 <b>Tippe auf eine Challenge.</b> Foto als Story mit ' + esc(HANDLE) + ' + Vibe-Check – beide erledigt = du bist im Lostopf.</p>' : '') +
       '<ul class="tasks" style="list-style:none;margin:0;padding:0">' + tasks + '</ul>' + pot +
       '<div class="sec" id="live-sec" hidden><span>Live im Club</span></div>' +
-      '<div class="vibe-live" id="vibe-live" hidden><span class="eyebrow">Live-Stimmung</span><div class="avg"><span class="n" id="v-avg"></span><span class="muted" id="v-count"></span></div><ul id="v-list"></ul></div>' +
+      '<div class="vibes" id="vibes" hidden><div class="vibes-head"><span class="eyebrow">Live-Vibes</span><span class="vibes-avg" id="v-avg"></span></div>' +
+      '<div class="vibes-strip" id="v-strip" aria-live="off"></div></div>' +
       '<div class="counter" id="counter" hidden><span class="n" id="count">0</span><span>sind heute dabei</span></div>' +
       (me.status === 'drawn' ? '' :
         '<div class="reset fineprint-zone"><button class="linkbtn" id="reset">Daten löschen &amp; neu anmelden</button>' +
@@ -338,16 +340,39 @@
       }catch(e){ showError('reset-err', e.message); busy(this, false, 'Ja, alles löschen'); }
     };
   }
+  // Live-Vibes: max. 7 zufällige Vibes anderer Gäste, neue Auswahl höchstens 1× pro Minute
+  var vibeShownAt = 0, vibeAuto = null;
+  function renderVibes(st){
+    var box = $('#vibes'); if (!box) return;
+    var list = st.sample || [];
+    if (!st.vibe_count || !list.length){ box.hidden = true; return; }
+    $('#v-avg').innerHTML = esc(Number(st.vibe_avg).toFixed(1).replace('.', ',')) + '<em>★</em> · ' + st.vibe_count;
+    if ($('#live-sec')) $('#live-sec').hidden = false;
+    box.hidden = false;
+    if (Date.now() - vibeShownAt < 59000 && $('#v-strip').children.length) return;
+    vibeShownAt = Date.now();
+    $('#v-strip').innerHTML = list.slice(0, 7).map(function(v){
+      return '<div class="vb"><span class="vs">' + '★'.repeat(v.stars) + '<i>' + '★'.repeat(5 - v.stars) + '</i></span><p>„' + esc(v.text) + '“</p><small>— ' + esc(v.fun_name) + '</small></div>';
+    }).join('');
+    $('#v-strip').scrollLeft = 0;
+    clearInterval(vibeAuto);
+    if (list.length > 1){
+      var paused = 0;
+      $('#v-strip').onpointerdown = function(){ paused = Date.now(); };
+      vibeAuto = setInterval(function(){
+        var el = $('#v-strip'); if (!el){ clearInterval(vibeAuto); return; }
+        if (Date.now() - paused < 8000) return;
+        var w = el.firstElementChild ? el.firstElementChild.offsetWidth + 10 : 200;
+        if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 4) el.scrollTo({ left: 0, behavior: 'smooth' });
+        else el.scrollBy({ left: w, behavior: 'smooth' });
+      }, 4000);
+    }
+  }
   async function refreshStats(){
     try{
       var st = await S.stats(); if (!st) return;
       if (st.players > 0 && $('#count')){ $('#count').textContent = st.players.toLocaleString('de-DE'); $('#counter').hidden = false; }
-      if (st.vibe_count > 0 && $('#vibe-live')){
-        $('#v-avg').innerHTML = esc(Number(st.vibe_avg).toFixed(1).replace('.', ',')) + '<em>★</em>';
-        $('#v-count').textContent = st.vibe_count + (st.vibe_count == 1 ? ' Bewertung' : ' Bewertungen');
-        $('#v-list').innerHTML = (st.recent || []).map(function(v){ return '<li><b>' + esc(v.fun_name) + '</b> ' + '★'.repeat(v.stars) + ' „' + esc(v.text) + '“</li>'; }).join('');
-        $('#vibe-live').hidden = false; if ($('#live-sec')) $('#live-sec').hidden = false;
-      }
+      renderVibes(st);
     }catch(e){}
   }
 
@@ -370,15 +395,15 @@
     setPending(pendingList().filter(function(k){ return k !== key; }));
     var box = $('#done-box'); if (box){ box.hidden = false; box.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     var n = doneCount(me);
-    if (n === 3 && box) box.querySelector('.status').textContent = 'Alle 3 geschafft – du bist im Lostopf! Ziehung um ' + C.drawTime + ' Uhr.';
+    if (n === TOTAL && box) box.querySelector('.status').textContent = 'Beide geschafft – du bist im Lostopf! Ziehung um ' + C.drawTime + ' Uhr.';
   }
 
   function photoTools(key){
-    return '<ol class="steps compact"><li><b>Foto machen</b><span>Der Abfahrt-Rahmen kommt automatisch drauf.</span></li>' +
+    return '<ol class="steps compact"><li><b>Foto machen</b><span>Selfie oder mit deiner Crew – der Rahmen kommt automatisch drauf.</span></li>' +
       '<li><b>„In Story teilen“ drücken</b><span>Dann Instagram → Story wählen.</span></li>' +
       '<li><b>' + esc(HANDLE) + ' markieren & posten</b><span>@-Sticker → „alfonsx“ tippen → Account in der Liste antippen → aufs Feld schieben.</span></li></ol>' +
       '<label class="btn red" for="cam" id="cam-label">Foto aufnehmen</label>' +
-      '<input id="cam" type="file" accept="image/*" capture="environment" hidden>' +
+      '<input id="cam" type="file" accept="image/*" capture="user" hidden>' +
       '<img class="preview" id="preview" alt="Dein Foto mit Abfahrt-Rahmen" hidden>' +
       '<div class="hint" id="tag-hint" hidden><span aria-hidden="true">👉</span><span>So markierst du richtig: In Instagram den Sticker <b>„@ Erwähnung“</b> wählen, <b>alfonsx</b> tippen und in der Liste auf <b>' + esc(HANDLE) + '</b> tippen. Dann auf das Feld <b>„hier alfons x markieren“</b> oben im Bild schieben.</span></div>' +
       '<button class="btn" id="share" hidden>In Story teilen</button>' +
@@ -444,7 +469,7 @@
         me = await S.submitVibe(stars, t) || me;
         btn.hidden = true;
         $('#done-box').hidden = false;
-        if (doneCount(me) === 3) $('#done-box .status').textContent = 'Alle 3 geschafft – du bist im Lostopf! Ziehung um ' + C.drawTime + ' Uhr.';
+        if (doneCount(me) === TOTAL) $('#done-box .status').textContent = 'Beide geschafft – du bist im Lostopf! Ziehung um ' + C.drawTime + ' Uhr.';
         var out = await F.vibe(stars, t, me.fun_name); file = out.file;
         $('#preview').src = out.url; $('#preview').hidden = false; $('#share').hidden = false; $('#tag-hint').hidden = false;
         $('#status').textContent = 'Abgeschickt ✓ Dein Vibe zählt jetzt zur Live-Stimmung.';

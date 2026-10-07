@@ -8,9 +8,8 @@ create table if not exists public.players (
   fun_name    text not null check (char_length(trim(fun_name)) between 2 and 24),
   ig_handle   text not null check (ig_handle ~ '^[a-z0-9._]{1,30}$'),
   character   jsonb,
-  random_at   timestamptz,
+  photo_at    timestamptz,
   vibe_at     timestamptz,
-  pose_at     timestamptz,
   status      text not null default 'active' check (status in ('active','drawn','won','rejected')),
   win_code    text,
   created_at  timestamptz not null default now()
@@ -44,7 +43,7 @@ create policy players_select_own on public.players for select to authenticated
 drop policy if exists players_insert_own on public.players;
 create policy players_insert_own on public.players for insert to authenticated
   with check (id = auth.uid() and status = 'active' and win_code is null
-              and random_at is null and vibe_at is null and pose_at is null);
+              and photo_at is null and vibe_at is null);
 -- Kein UPDATE/DELETE für Spieler – Änderungen nur über die Funktionen unten.
 -- vibes/admins: keine Policies → nur über Funktionen erreichbar.
 
@@ -54,15 +53,14 @@ language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.admins where user_id = auth.uid());
 $$;
 
--- Challenge abhaken (random / pose). Vibe läuft über submit_vibe.
+-- Foto-Challenge abhaken (key 'photo'). Vibe läuft über submit_vibe.
 create or replace function public.complete_challenge(p_key text) returns public.players
 language plpgsql security definer set search_path = public as $$
 declare r public.players;
 begin
-  if p_key not in ('random','pose') then raise exception 'invalid_key'; end if;
+  if p_key <> 'photo' then raise exception 'invalid_key'; end if;
   update public.players set
-    random_at = case when p_key = 'random' then coalesce(random_at, now()) else random_at end,
-    pose_at   = case when p_key = 'pose'   then coalesce(pose_at,   now()) else pose_at   end
+    photo_at = coalesce(photo_at, now())
   where id = auth.uid()
   returning * into r;
   if r.id is null then raise exception 'not_registered'; end if;
@@ -91,7 +89,11 @@ language sql stable security definer set search_path = public as $$
     'recent',     coalesce((select json_agg(x) from (
                      select p.fun_name, v.stars, v.text
                      from public.vibes v join public.players p on p.id = v.player_id
-                     order by v.created_at desc limit 3) x), '[]'::json)
+                     order by v.created_at desc limit 3) x), '[]'::json),
+    'sample',     coalesce((select json_agg(y) from (
+                     select p.fun_name, v.stars, v.text
+                     from public.vibes v join public.players p on p.id = v.player_id
+                     order by random() limit 7) y), '[]'::json)
   );
 $$;
 
@@ -113,10 +115,9 @@ begin
   if not public.is_admin() then raise exception 'not_admin'; end if;
   return json_build_object(
     'total',    (select count(*) from public.players),
-    'eligible', (select count(*) from public.players where status = 'active' and random_at is not null and vibe_at is not null and pose_at is not null),
-    'random',   (select count(*) from public.players where random_at is not null),
+    'eligible', (select count(*) from public.players where status = 'active' and photo_at is not null and vibe_at is not null),
+    'photo',    (select count(*) from public.players where photo_at is not null),
     'vibe',     (select count(*) from public.players where vibe_at is not null),
-    'pose',     (select count(*) from public.players where pose_at is not null),
     'winners',  coalesce((select json_agg(json_build_object('fun_name', fun_name, 'ig_handle', ig_handle, 'win_code', win_code)) from public.players where status = 'won'), '[]'::json),
     'drawn',    coalesce((select json_agg(json_build_object('id', id, 'fun_name', fun_name, 'ig_handle', ig_handle)) from public.players where status = 'drawn'), '[]'::json)
   );
@@ -128,7 +129,7 @@ declare r public.players;
 begin
   if not public.is_admin() then raise exception 'not_admin'; end if;
   select * into r from public.players
-    where status = 'active' and random_at is not null and vibe_at is not null and pose_at is not null
+    where status = 'active' and photo_at is not null and vibe_at is not null
     order by random() limit 1
     for update skip locked;
   if r.id is null then raise exception 'empty_pot'; end if;

@@ -2,7 +2,7 @@
 (function(){
   var C = window.ABFAHRT_CONFIG;
   var DEMO = !C.supabaseUrl || !C.supabaseAnonKey;
-  var CHALLENGES = ['random','vibe','pose'];
+  var CHALLENGES = ['photo','vibe'];
 
   function lsGet(k, d){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
   function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
@@ -47,7 +47,7 @@
       var fn = d.fun_name.trim(), ig = normHandle(d.ig_handle);
       if (players.some(function(p){ return p.fun_name.toLowerCase() === fn.toLowerCase(); })) return Promise.reject(new Error('Diesen Spaßnamen gibt es schon. Nimm einen anderen.'));
       if (players.some(function(p){ return p.ig_handle === ig; })) return Promise.reject(new Error('Mit diesem Instagram-Namen ist schon jemand angemeldet.'));
-      var p = { id: uuid(), fun_name: fn, ig_handle: ig, character: localCharacter(fn, d.song, d.move), random_at: null, vibe_at: null, pose_at: null, status: 'active', win_code: null, created_at: new Date().toISOString() };
+      var p = { id: uuid(), fun_name: fn, ig_handle: ig, character: localCharacter(fn, d.song, d.move), photo_at: null, vibe_at: null, status: 'active', win_code: null, created_at: new Date().toISOString() };
       players.push(p); lsSet('ab_players', players); lsSet('ab_me', p.id);
       return Promise.resolve(p);
     },
@@ -66,7 +66,8 @@
       var byId = {}; players.forEach(function(p){ byId[p.id] = p; });
       var avg = vibes.length ? vibes.reduce(function(s,v){ return s + v.stars; }, 0) / vibes.length : null;
       return Promise.resolve({ players: players.length, vibe_avg: avg, vibe_count: vibes.length,
-        recent: vibes.slice(-3).reverse().map(function(v){ return { fun_name: (byId[v.player_id]||{}).fun_name || '?', stars: v.stars, text: v.text }; }) });
+        recent: vibes.slice(-3).reverse().map(function(v){ return { fun_name: (byId[v.player_id]||{}).fun_name || '?', stars: v.stars, text: v.text }; }),
+        sample: vibes.slice().sort(function(){ return Math.random() - .5; }).slice(0, 7).map(function(v){ return { fun_name: (byId[v.player_id]||{}).fun_name || '?', stars: v.stars, text: v.text }; }) });
     },
     // Admin
     deleteMe: function(){
@@ -84,18 +85,17 @@
       var ps = lsGet('ab_players', []);
       return Promise.resolve({
         total: ps.length,
-        eligible: ps.filter(function(p){ return p.status === 'active' && p.random_at && p.vibe_at && p.pose_at; }).length,
-        random: ps.filter(function(p){ return p.random_at; }).length,
+        eligible: ps.filter(function(p){ return p.status === 'active' && p.photo_at && p.vibe_at; }).length,
+        photo: ps.filter(function(p){ return p.photo_at; }).length,
         vibe: ps.filter(function(p){ return p.vibe_at; }).length,
-        pose: ps.filter(function(p){ return p.pose_at; }).length,
         winners: ps.filter(function(p){ return p.status === 'won'; }).map(function(p){ return { fun_name: p.fun_name, ig_handle: p.ig_handle, win_code: p.win_code }; }),
         drawn: ps.filter(function(p){ return p.status === 'drawn'; }).map(function(p){ return { id: p.id, fun_name: p.fun_name, ig_handle: p.ig_handle }; })
       });
     },
     adminDraw: function(){
       var ps = lsGet('ab_players', []);
-      var pool = ps.filter(function(p){ return p.status === 'active' && p.random_at && p.vibe_at && p.pose_at; });
-      if (!pool.length) return Promise.reject(new Error('Niemand im Lostopf (3/3 erledigt).'));
+      var pool = ps.filter(function(p){ return p.status === 'active' && p.photo_at && p.vibe_at; });
+      if (!pool.length) return Promise.reject(new Error('Niemand im Lostopf (2/2 erledigt).'));
       var w = pool[Math.floor(Math.random() * pool.length)];
       ps.forEach(function(p){ if (p.id === w.id) p.status = 'drawn'; }); lsSet('ab_players', ps);
       return Promise.resolve({ id: w.id, fun_name: w.fun_name, ig_handle: w.ig_handle });
@@ -125,7 +125,7 @@
     if (/players_ig_unique|ig_handle_unique/i.test(m)) return 'Mit diesem Instagram-Namen ist schon jemand angemeldet.';
     if (/blocked_text/i.test(m)) return 'Bitte ohne Beleidigungen – formulier deinen Satz neu.';
     if (/not_admin/i.test(m)) return 'Kein Admin-Zugang für dieses Konto.';
-    if (/empty_pot/i.test(m)) return 'Niemand im Lostopf (3/3 erledigt).';
+    if (/empty_pot/i.test(m)) return 'Niemand im Lostopf (2/2 erledigt).';
     if (/locked_after_draw/i.test(m)) return 'Nach der Ziehung kannst du deine Daten nicht mehr selbst löschen. Sprich das Team an.';
     if (/Failed to fetch|NetworkError/i.test(m)) return 'Keine Verbindung. Bitte Internet prüfen und nochmal versuchen.';
     return m;

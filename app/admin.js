@@ -52,8 +52,8 @@
     try{
       var o = await S.adminOverview();
       $('#tiles').innerHTML =
-        tile(o.eligible, 'Im Lostopf (3/3)', true) + tile(o.total, 'Angemeldet') +
-        tile(o.random, 'Random-Foto') + tile(o.vibe, 'Vibe-Check') + tile(o.pose, 'Best Pose') + tile((o.winners || []).length + ' / ' + (C.prizes || []).reduce(function(s, p){ return s + p.count; }, 0), 'Gewinner');
+        tile(o.eligible, 'Im Lostopf (2/2)', true) + tile(o.total, 'Angemeldet') +
+        tile(o.photo, 'Abfahrt-Foto') + tile(o.vibe, 'Vibe-Check') + tile((o.winners || []).length + ' / ' + (C.prizes || []).reduce(function(s, p){ return s + p.count; }, 0), 'Gewinner');
       if (!current && o.drawn && o.drawn.length) showCandidate(o.drawn[0]);
       $('#winners').innerHTML = (o.winners || []).length
         ? '<span class="eyebrow">Bestätigte Gewinner</span><ul class="tasks" style="list-style:none;margin:10px 0 0;padding:0">' + o.winners.map(function(w){
