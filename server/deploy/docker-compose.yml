@@ -1,0 +1,101 @@
+# Abfahrt · alfons x — eigenes Compose-Projekt auf dem VPS (/root/abfahrt/docker-compose.yml)
+# Einzige Verbindung nach außen: traefik-network. Die DB hängt nur im internen Netz.
+# Start:   docker compose up -d --build
+# Löschen nach dem Event: server/scripts/purge.sh, dann docker compose down -v
+name: abfahrt
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    image: abfahrt-app:local
+    container_name: abfahrt-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      TZ: Europe/Berlin
+      PGHOST: abfahrt-db
+      PGPORT: "5432"
+      PGDATABASE: abfahrt
+      PGUSER: abfahrt_app
+      PGPASSWORD: ${APP_DB_PASSWORD:?}
+      PUBLIC_ORIGIN: https://${ABFAHRT_HOST:?}
+      PRIZE_TOTAL: ${PRIZE_TOTAL:-13}
+      DB_POOL_MAX: ${DB_POOL_MAX:-20}
+      ADMIN_1_EMAIL: ${ADMIN_1_EMAIL:?}
+      ADMIN_1_PASSWORD: ${ADMIN_1_PASSWORD:?}
+      ADMIN_2_EMAIL: ${ADMIN_2_EMAIL:-}
+      ADMIN_2_PASSWORD: ${ADMIN_2_PASSWORD:-}
+      RL_REGISTER_PER_IP_PER_MIN: ${RL_REGISTER_PER_IP_PER_MIN:-600}
+      RL_TOKEN_PER_MIN: ${RL_TOKEN_PER_MIN:-60}
+    mem_limit: 384m
+    networks:
+      - traefik-network
+      - internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      # HTTP → HTTPS
+      - "traefik.http.routers.abfahrt-http.rule=Host(`${ABFAHRT_HOST}`)"
+      - "traefik.http.routers.abfahrt-http.entrypoints=web"
+      - "traefik.http.routers.abfahrt-http.middlewares=abfahrt-https-redirect"
+      - "traefik.http.middlewares.abfahrt-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.abfahrt-https-redirect.redirectscheme.permanent=true"
+      # Webapp + Gäste-API
+      - "traefik.http.routers.abfahrt.rule=Host(`${ABFAHRT_HOST}`)"
+      - "traefik.http.routers.abfahrt.entrypoints=websecure"
+      - "traefik.http.routers.abfahrt.tls=true"
+      - "traefik.http.routers.abfahrt.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.abfahrt.middlewares=abfahrt-ratelimit"
+      - "traefik.http.routers.abfahrt.service=abfahrt"
+      # Admin: zusätzlich Basic-Auth
+      - "traefik.http.routers.abfahrt-admin.rule=Host(`${ABFAHRT_HOST}`) && (Path(`/admin`) || Path(`/admin.html`) || Path(`/admin.js`) || PathPrefix(`/api/admin`))"
+      - "traefik.http.routers.abfahrt-admin.priority=100"
+      - "traefik.http.routers.abfahrt-admin.entrypoints=websecure"
+      - "traefik.http.routers.abfahrt-admin.tls=true"
+      - "traefik.http.routers.abfahrt-admin.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.abfahrt-admin.middlewares=abfahrt-ratelimit,abfahrt-admin-auth"
+      - "traefik.http.routers.abfahrt-admin.service=abfahrt"
+      - "traefik.http.middlewares.abfahrt-admin-auth.basicauth.users=${ADMIN_BASIC_AUTH:?}"
+      - "traefik.http.middlewares.abfahrt-admin-auth.basicauth.realm=Abfahrt Team"
+      # Großzügig pro IP (viele Gäste hinter einer IP möglich); das eigentliche Limit macht die App pro Token
+      - "traefik.http.middlewares.abfahrt-ratelimit.ratelimit.average=200"
+      - "traefik.http.middlewares.abfahrt-ratelimit.ratelimit.burst=500"
+      - "traefik.http.middlewares.abfahrt-ratelimit.ratelimit.period=1s"
+      - "traefik.http.services.abfahrt.loadbalancer.server.port=3000"
+
+  db:
+    image: postgres:16.15-alpine
+    container_name: abfahrt-db
+    restart: unless-stopped
+    command: ["postgres", "-c", "max_connections=60", "-c", "shared_buffers=128MB"]
+    environment:
+      TZ: Europe/Berlin
+      POSTGRES_DB: abfahrt
+      POSTGRES_USER: abfahrt_owner
+      POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD:?}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:?}
+    volumes:
+      - db:/var/lib/postgresql/data
+      - ./server/sql:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U abfahrt_owner -d abfahrt"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    shm_size: 128m
+    mem_limit: 512m
+    networks:
+      - internal
+
+volumes:
+  db:
+
+networks:
+  traefik-network:
+    external: true
+  internal:
+    internal: true

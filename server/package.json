@@ -1,0 +1,19 @@
+{
+  "name": "abfahrt-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API + Auslieferung der Webapp für „Abfahrt“ (alfons x, 24.10.2026)",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@fastify/static": "10.1.5",
+    "fastify": "5.12.5",
+    "pg": "8.23.1"
+  }
+}

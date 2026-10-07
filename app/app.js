@@ -291,7 +291,9 @@
         '<span><b>' + esc(CH[k].label) + '</b><small>' + esc(CH[k].sub) + '</small></span>' +
         '<span class="st">' + (done ? '✓ erledigt' : 'starten<i aria-hidden="true">›</i>') + '</span></button></li>';
     }).join('');
-    var pot = n === 3
+    var pot = me.status === 'rejected'
+      ? '<div class="pot"><b>diesmal leider nicht.</b><p>Du wurdest gezogen, wir konnten aber keine Story mit Markierung finden. Danke fürs Mitmachen!</p></div>'
+      : n === 3
       ? '<div class="pot in"><b>du bist im lostopf.</b><p>Um ' + esc(C.drawTime) + ' Uhr werden ' + PRIZE_TOTAL + ' Gewinne ausgelost. Der DJ ruft die Gewinner auf – halt dein Handy bereit.</p></div>'
       : '<div class="pot"><b>noch ' + (3 - n) + ' bis zum lostopf.</b><p>Tippe oben auf eine Challenge und leg los.</p></div>';
     var drawn = me.status === 'drawn'
@@ -305,7 +307,7 @@
       '<div class="sec" id="live-sec" hidden><span>Live im Club</span></div>' +
       '<div class="vibe-live" id="vibe-live" hidden><span class="eyebrow">Live-Stimmung</span><div class="avg"><span class="n" id="v-avg"></span><span class="muted" id="v-count"></span></div><ul id="v-list"></ul></div>' +
       '<div class="counter" id="counter" hidden><span class="n" id="count">0</span><span>sind heute dabei</span></div>' +
-      (me.status === 'drawn' ? '' :
+      (me.status === 'drawn' || me.status === 'rejected' ? '' :
         '<div class="reset fineprint-zone"><button class="linkbtn" id="reset">Daten löschen &amp; neu anmelden</button>' +
         '<div class="confirm" id="reset-box" hidden><b>wirklich löschen?</b><p>Dein Spaßname, Charakter, Instagram-Name und alle erledigten Challenges werden <b>komplett gelöscht</b>. Danach kannst du dich neu anmelden.</p>' +
         errorBox('reset-err') + '<div class="btn-row"><button class="btn danger" id="reset-yes">Ja, alles löschen</button><button class="btn ghost" id="reset-no">Abbrechen</button></div></div></div>') +

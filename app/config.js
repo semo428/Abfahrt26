@@ -1,10 +1,7 @@
 // Abfahrt · alfons x — Konfiguration
-// Solange supabaseUrl leer ist, läuft die App im DEMO-MODUS (alles nur lokal im Browser).
+// Auf *.github.io und localhost läuft die App im DEMO-MODUS (alles nur lokal im Browser), sonst gegen die API unter /api (siehe store.js).
 // Alles mit "BEISPIEL" ist Platzhalter und muss noch durch echte Infos ersetzt werden.
 window.ABFAHRT_CONFIG = {
-  supabaseUrl: "",        // z. B. "https://abcd1234.supabase.co"
-  supabaseAnonKey: "",    // "anon public" Key aus Supabase → Project Settings → API
-
   instagram: "alfonsx_sigmaringen",
   eventDate: "24.10.2026",
   drawTime: "02:00",
