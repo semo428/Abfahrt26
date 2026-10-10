@@ -43,6 +43,7 @@ services:
       PGPASSWORD: test-app-pw
       PRIZES: "meet:2,shirt:1"
       REVEAL_AT: "2099-01-01T00:00:00Z"
+      DRAW_AT: "off"
       STATS_CACHE_MS: "0"
       VIBE_MIN_INTERVAL_SEC: "1"
       VIBE_MAX_PER_PLAYER: "2"
@@ -63,7 +64,46 @@ services:
       PGPASSWORD: test-app-pw
       PRIZES: "meet:2,shirt:1"
       REVEAL_AT: "2000-01-01T00:00:00Z"
+      DRAW_AT: "off"
       STATS_CACHE_MS: "0"
+    networks: [internal]
+
+  # eigene DB + automatische Auslosung, deren Zeitpunkt schon vorbei ist
+  db-auto:
+    image: postgres:16.15-alpine
+    environment:
+      POSTGRES_DB: abfahrt
+      POSTGRES_USER: abfahrt_owner
+      POSTGRES_PASSWORD: test-owner-pw
+      APP_DB_PASSWORD: test-app-pw
+    volumes:
+      - ./server/sql:/docker-entrypoint-initdb.d:ro
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U abfahrt_owner -d abfahrt"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+
+  app-auto:
+    image: abfahrt-app:test
+    depends_on:
+      app:
+        condition: service_healthy
+      db-auto:
+        condition: service_healthy
+    environment:
+      <<: *test-env
+      PGHOST: db-auto
+      PGDATABASE: abfahrt
+      PGUSER: abfahrt_app
+      PGPASSWORD: test-app-pw
+      PRIZES: "meet:1,shirt:1"
+      REVEAL_AT: "2099-01-01T00:00:00Z"
+      DRAW_AT: "2000-01-01T00:00:00Z"
+      AUTO_DRAW_CHECK_MS: "500"
     networks: [internal]
 
   tests:
@@ -71,10 +111,13 @@ services:
     depends_on:
       app-revealed:
         condition: service_healthy
+      app-auto:
+        condition: service_healthy
     environment:
       <<: *test-env
       API: http://app:3000
       API_REVEALED: http://app-revealed:3000
+      API_AUTO: http://app-auto:3000
     command: ["node", "--test", "--test-concurrency=1", "test/*.test.js"]
     networks: [internal]
 

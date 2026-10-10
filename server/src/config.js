@@ -40,12 +40,23 @@ function revealAt(){
   return new Date(t);
 }
 
+// Automatische Auslosung (Standard 03:30 MEZ in der Eventnacht); "off" schaltet sie ab
+function drawAt(){
+  const v = process.env.DRAW_AT || '2026-10-25T03:30:00+01:00';
+  if (v === 'off') return null;
+  const t = Date.parse(v);
+  if (Number.isNaN(t)) throw new Error('env DRAW_AT ungültig: ' + v);
+  return new Date(t);
+}
+
 module.exports = {
   port: int('PORT', 3000),
   publicOrigin: process.env.PUBLIC_ORIGIN || 'https://abfahrt.askconnect.de',
   staticRoot: process.env.STATIC_ROOT || path.join(__dirname, '..', 'public'),
   prizes: prizes(),
   revealAt: revealAt(),
+  drawAt: drawAt(),
+  autoDrawCheckMs: int('AUTO_DRAW_CHECK_MS', 15000),
   dbPoolMax: int('DB_POOL_MAX', 20),
   statsCacheMs: int('STATS_CACHE_MS', 30000),   // laut Vertrag 30–60 s ok; alle Geräte pollen
   adminSessionHours: int('ADMIN_SESSION_HOURS', 12),

@@ -4,6 +4,7 @@ const config = require('./config');
 const { pool } = require('./db');
 const { hashPassword } = require('./auth');
 const { buildApp } = require('./app');
+const { startAutoDraw } = require('./draw');
 
 async function waitForDb(log){
   for (let i = 1; ; i++){
@@ -34,6 +35,7 @@ async function main(){
   await waitForDb(app.log);
   await syncAdmins(app.log);
   await app.listen({ host: '0.0.0.0', port: config.port });
+  startAutoDraw(app.log);
 
   let closing = false;
   async function shutdown(){
