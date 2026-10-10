@@ -4,7 +4,8 @@ const config = require('../config');
 const { pool, tx } = require('../db');
 const { ApiError } = require('../errors');
 const { Limiter } = require('../ratelimit');
-const { newToken, hashToken, cookie, hashPassword, verifyPassword, winCode } = require('../auth');
+const { newToken, hashToken, cookie, hashPassword, verifyPassword } = require('../auth');
+const { drawAll, drawFor, lock, retryOnCodeClash } = require('../draw');
 const v = require('../validate');
 
 const { ELIGIBLE } = require('../game');
@@ -21,22 +22,6 @@ const OVERVIEW_SQL = `
                             'win_code', win_code, 'checked', status = 'won') order by array_position($1::text[], prize), fun_name)
                           from players where status in ('drawn', 'won') and prize is not null), '[]'::json)
   ) as o`;
-
-// n Gewinner für einen Gewinn ziehen (innerhalb einer Transaktion), jede Person max. 1×
-async function drawFor(c, key, n){
-  if (n <= 0) return 0;
-  const { rows } = await c.query('select id from players where ' + ELIGIBLE + ' order by random() limit $1 for update', [n]);
-  for (const r of rows) await c.query("update players set status = 'drawn', prize = $2, win_code = $3 where id = $1", [r.id, key, winCode()]);
-  return rows.length;
-}
-
-// Gewinncode-Kollision (unique) ist extrem selten → ganze Transaktion wiederholen
-async function retryOnCodeClash(fn){
-  for (let attempt = 0; ; attempt++){
-    try{ return await fn(); }
-    catch(e){ if (e.code === '23505' && attempt < 3) continue; throw e; }
-  }
-}
 
 module.exports = async function(app){
   const window15 = 15 * 60 * 1000;
@@ -85,19 +70,8 @@ module.exports = async function(app){
   // Füllt alle freien Gewinnplätze (Anzahlen aus PRIZES) zufällig aus dem Lostopf (2/2, Status active)
   app.post('/api/admin/draw-all', async function(req){
     await admin(req);
-    await retryOnCodeClash(function(){
-      return tx(async function(c){
-        await c.query('select pg_advisory_xact_lock(2410)');   // zwei Admins gleichzeitig → nacheinander
-        const have = {};
-        for (const r of (await c.query("select prize, count(*)::int as n from players where status in ('drawn', 'won') and prize is not null group by prize")).rows) have[r.prize] = r.n;
-        let needed = 0, drawn = 0;
-        for (const p of config.prizes){
-          const need = p.count - (have[p.key] || 0);
-          if (need > 0){ needed += need; drawn += await drawFor(c, p.key, need); }
-        }
-        if (needed > 0 && drawn === 0) throw new ApiError(409, 'empty_pot');
-      });
-    });
+    const r = await drawAll();
+    if (r.needed > 0 && r.drawn === 0) throw new ApiError(409, 'empty_pot');
     return overview();
   });
 
@@ -116,7 +90,7 @@ module.exports = async function(app){
     const id = v.uuid(v.body(req).id);
     await retryOnCodeClash(function(){
       return tx(async function(c){
-        await c.query('select pg_advisory_xact_lock(2410)');
+        await lock(c);
         const { rows } = await c.query("select prize from players where id = $1 and status in ('drawn', 'won') for update", [id]);
         if (!rows[0]) throw new ApiError(409, 'not_drawn');
         await c.query("update players set status = 'rejected', prize = null, win_code = null where id = $1", [id]);
