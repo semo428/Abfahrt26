@@ -79,6 +79,14 @@ Ergänzung zu `projekt-kontext.md`. Hier steht **wie** wir zu den Entscheidungen
 - **Sommerzeit:** In der Nacht 24./25.10.2026 endet die Sommerzeit (03:00 → 02:00). 02:00 hätte es zweimal gegeben; 03:30/04:00 sind eindeutig (MEZ, +01).
 - Testlauf im Demo-Modus: `?probe=30` → Show startet nach 30 s mit Testnamen, eigener Name gewinnt im Finale.
 
+### 07.–10.10. – Backend Weg C umgesetzt
+- **Freigabe Weg C** mit Abweichung vom Konzept: **eigener Postgres-Container** `abfahrt-db` statt eigener DB in der vorhandenen `postgres_prod`. Grund (VPS-Prüfung): dort laufen n8n, Cal.com und dealer_os, n8n verbindet sich als Superuser, `CONNECT` ist für alle DBs offen – ein Eingriff in die Produktiv-DB wäre nötig gewesen; ein eigener Container ist nach dem Event mit `down -v` rückstandslos weg.
+- **Eigenes Compose-Projekt** `/root/abfahrt` statt Änderung bestehender `docker-compose.yml`; Traefik wird nicht angefasst/neu gestartet (daher keine Traefik-Access-Logs, nur schlanke App-Logs). Netz `traefik-network` (Achtung: es gibt ein verwaistes `traefik_network` mit Unterstrich).
+- **Rate-Limit:** viele Gäste können hinter einer IP sitzen (Club-WLAN, Carrier-NAT) → Traefik großzügig (200/s pro IP), das eigentliche Limit macht die App pro Geräte-Token.
+- **Admin:** 2 Accounts + zusätzlich Traefik-Basic-Auth vor `/admin*`; Zugangsdaten nur in der `.env` auf dem Server.
+- **Google Fonts selbst gehostet** (DSGVO: sonst geht die IP jedes Gastes an Google), supabase-js entfernt; CSP nur `'self'`.
+- **Merge mit der Live-Show (10.10.):** Frontend des Kollegen als Basis übernommen, API an seinen Vertrag angepasst (`reveal`, `draw-all`, Maskierung bis `REVEAL_AT`). Abweichung: Löschen ist vor 04:00 für alle erlaubt, ab 04:00 auch für `rejected` gesperrt (Handle bleibt belegt).
+
 ---
 
 ## 2. Verworfene Ideen (und warum)

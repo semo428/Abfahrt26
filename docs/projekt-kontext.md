@@ -33,7 +33,7 @@ Dieses Dokument fasst Ziel, Verlauf, Entscheidungen (mit Begründung), den aktue
 | Gäste-Login | **ohne Passwort**, Gerät per zufälliger Kennung wiedererkannt; „Daten löschen & neu anmelden“ möglich | einfach + datensparsam |
 | Lageplan | gezeichneter **Beispiel-Innenplan** mit gelben Security-Strichmännchen am Eingang. Ein OSM-Umgebungsplan wurde gebaut und **auf Wunsch wieder entfernt** | User bevorzugt schlichten Plan; echter Plan kommt vom Inhaber |
 | Hosting | **nicht GitHub Pages** für den Live-Betrieb (kommerziell, kein Monitoring) → **eigener VPS** | |
-| Backend | Supabase (Weg B) vs. eigener Stack (Weg C) → **Empfehlung Weg C** mit **eigenem Node-API-Container**, n8n nur intern. Finale Freigabe steht noch aus | Stack vorhanden (Traefik, Docker Compose, Postgres, n8n); Daten + Monitoring bei uns; kein US-Dienstleister |
+| Backend | **Weg C umgesetzt** (freigegeben 07.10.): eigener Node-API-Container + **eigener Postgres-Container** `abfahrt-db` (nicht die vorhandene `postgres_prod` mit n8n/Cal.com), eigenes Compose-Projekt in `/root/abfahrt`; n8n wird nicht genutzt | Stack vorhanden (Traefik, Docker Compose); Event-Daten komplett getrennt und nach dem Event rückstandslos löschbar (`down -v`); kein US-Dienstleister |
 | Inhalte | **kein Alkohol-Bezug** in Texten/Beispielen | Kundenwunsch |
 
 ---
@@ -89,18 +89,18 @@ admins  (bei Weg C: eigener Admin-Login, z. B. 1–3 Team-Accounts mit Passwort-
 - Gast sieht/ändert **nur den eigenen** Datensatz.
 - Challenges nur über eigene Endpunkte abhakbar (`photo`; `vibe` über Vibe-Endpunkt); Zeitstempel wird nur gesetzt, wenn noch leer.
 - Wortfilter für Vibe-Texte (Liste in `schema.sql` → `submit_vibe` und `app.js` → `BLOCK`).
-- Löschen des eigenen Eintrags **gesperrt**, wenn Status `drawn` oder `won` (`locked_after_draw`).
+- Löschen des eigenen Eintrags: **vor reveal_at für alle erlaubt** (eine Sperre würde verraten, dass man gezogen wurde); **ab reveal_at gesperrt** für `drawn`, `won` und `rejected` (`locked_after_draw`) – abgelehnte Handles bleiben so belegt.
 - Ziehung: zufällig aus `status='active'` **und** `photo_at` + `vibe_at` gesetzt; gezogener → `drawn` + `prize` + `win_code`; Story bestätigt → `won`; abgelehnt → `rejected` (prize/win_code leeren, für denselben Gewinn nachziehen). `drawn` und `won` zählen beide als Gewinner in der Show.
-- `reveal_at` (Tabelle `settings`, 2026-10-25 04:00+01): davor liefern `me`/`reveal` **keinen** Status/Gewinn/Code (Status immer `active`).
+- `reveal_at` (Weg C: `.env` → `REVEAL_AT=2026-10-25T04:00:00+01:00`; Supabase-Referenz: Tabelle `settings`): davor liefern `me`/`reveal` **keinen** Status/Gewinn/Code (Status immer `active`). Gewinn-Anzahlen ebenfalls per `.env` (`PRIZES=meet:5,shirt:3,drink:5`).
 - Öffentliche Statistik ohne Instagram-Handles: Anzahl Spieler, Ø Sterne, Anzahl Vibes, letzte 3 Vibes, **Zufallsauswahl von max. 7 Vibes** (fun_name, stars, text).
 
 ---
 
 ## 5. API-Vertrag (was das Frontend erwartet)
 
-Das Frontend greift **nur** über `app/store.js` auf Daten zu. Für Weg C wird dort ein neuer Live-Teil (statt Supabase) geschrieben, der diese Funktionen per `fetch` auf die API abbildet. **Signaturen/Rückgaben müssen gleich bleiben** – dann muss sonst nichts geändert werden.
+Das Frontend greift **nur** über `app/store.js` auf Daten zu. Der Live-Teil dort ruft per `fetch` die eigene API (`server/`) auf – **umgesetzt**. Demo-Modus nur noch auf `*.github.io` und localhost. **Signaturen/Rückgaben müssen gleich bleiben** – Änderungen am Vertrag immer in Frontend (`store.js`), API (`server/src/routes/`) und Tests (`server/test/`) gemeinsam.
 
-| store.js | Vorschlag REST (Weg C) | Rückgabe |
+| store.js | REST (Weg C, umgesetzt) | Rückgabe |
 |---|---|---|
 | `init()` | – (Token aus localStorage lesen) | – |
 | `me()` | `GET /api/me` (Bearer-Token) | Player-Objekt oder `null` |
@@ -114,14 +114,14 @@ Das Frontend greift **nur** über `app/store.js` auf Daten zu. Für Weg C wird d
 | `reveal()` | `GET /api/reveal` (öffentlich) | `{ reveal_at, now, names:[fun_name…], winners: null \| [{fun_name, prize}] }` – `now` = Serverzeit (Handys gleichen ihre Uhr ab), `names` = bis 80 zufällige Spaßnamen aus dem Lostopf zum Durchwürfeln, `winners` **erst ab reveal_at**, vorher `null` |
 | `adminOverview()` | `GET /api/admin/overview` | `{ total, eligible, photo, vibe, winners:[{id,fun_name,ig_handle,prize,win_code,checked}] }` |
 | `adminDrawAll()` | `POST /api/admin/draw-all` | füllt alle freien Gewinnplätze (5 meet, 3 shirt, 5 drink); Antwort wie overview |
-| `adminConfirm(id)` | `POST /api/admin/confirm {id}` | – (drawn → won) |
-| `adminReject(id)` | `POST /api/admin/reject {id}` | – (→ rejected, sofort Ersatz für denselben Gewinn ziehen) |
+| `adminConfirm(id)` | `POST /api/admin/confirm {id}` | – (drawn → won; sonst `not_drawn`) |
+| `adminReject(id)` | `POST /api/admin/reject {id}` | – (drawn/won → rejected, sofort Ersatz für denselben Gewinn ziehen; sonst `not_drawn`) |
 | `adminLogout()` | `POST /api/admin/logout` | – |
 | – | `GET /api/health` | für Monitoring |
 
 **Player-Objekt:** `{ id, fun_name, ig_handle, character, photo_at, vibe_at, status, prize, win_code, created_at }` – `status/prize/win_code` vor reveal_at maskiert
 
-**Fehler:** JSON `{ "error": "<code>" }` mit passendem HTTP-Status. Codes, die das Frontend übersetzt (`friendly()` in store.js): `fun_name_unique`, `ig_handle_unique`, `blocked_text`, `not_admin`, `empty_pot`, `locked_after_draw`. Validierungsfehler (Länge/Format) prüft das Frontend zusätzlich selbst.
+**Fehler:** JSON `{ "error": "<code>" }` mit passendem HTTP-Status. Codes, die das Frontend übersetzt (`friendly()` in store.js): `fun_name_unique`, `ig_handle_unique`, `blocked_text`, `not_admin`, `empty_pot`, `locked_after_draw`, `not_drawn`, `already_registered` (pro Gerät ein Eintrag), `not_registered` (Token unbekannt → store.js meldet `null`), `rate_limited`, `invalid_input`, `server_error`. Validierungsfehler (Länge/Format) prüft das Frontend zusätzlich selbst.
 
 **Eingabe-Validierung (serverseitig wiederholen!):** fun_name trim, 2–24 · ig_handle: `@` entfernen, lowercase, `^[a-z0-9._]{1,30}$` · stars 1–5 · text trim, 2–80, Wortfilter · key = photo.
 
@@ -129,20 +129,22 @@ Das Frontend greift **nur** über `app/store.js` auf Daten zu. Für Weg C wird d
 
 ---
 
-## 6. Zielarchitektur Weg C
+## 6. Architektur Weg C (umgesetzt)
 
 ```
-Gast-Handy ──HTTPS──▶ Traefik (TLS, Rate-Limit, Security-Header)
-                         └──▶ Container „abfahrt“ (Node, z. B. Fastify)
-                                ├─ liefert app/ statisch aus  (/, /admin.html, …)
-                                └─ /api/*  ──(internes Docker-Netz)──▶ Postgres
-                                                                       (eigene DB „abfahrt“, eigener User)
-n8n (intern, nicht öffentlich): Auswertung, Lösch-Job nach dem Event, ggf. Team-Benachrichtigung
+Gast-Handy ──HTTPS──▶ Traefik (TLS Let's Encrypt, Rate-Limit 200/s pro IP, Basic-Auth vor /admin*)
+                         └──▶ abfahrt-app (Node 24, Fastify, 384 MB)     [traefik-network + abfahrt_internal]
+                                ├─ liefert app/ statisch aus (/, /admin.html, …; ohne app/supabase)
+                                └─ /api/*  ──(abfahrt_internal, ohne Internet)──▶ abfahrt-db (Postgres 16, 512 MB)
+                                                                                  DB „abfahrt“, App-User nur DML
 ```
 
-- Vorhandener Stack beim Team: **Traefik** (kein nginx), **Docker + docker-compose**, **Postgres**, **n8n**.
-- Benötigt vom Team: **Subdomain** (z. B. `abfahrt.<domain>`), **Name des Docker-Netzwerks** von Traefik/Postgres, Traefik-Entrypoint/Certresolver-Namen.
-- Liefergegenstände: `Dockerfile`, Service-Block für `docker-compose.yml` mit Traefik-Labels, SQL-Schema (ohne Supabase-`auth.*`), neuer Live-Teil in `store.js`, Lasttest.
+- **Live:** `https://abfahrt.askconnect.de` · Team: `https://abfahrt.askconnect.de/admin.html` (erst Basic-Auth „team“, dann E-Mail + Passwort) · Health: `/api/health`.
+- **VPS** (Hostinger, Frankfurt, `ssh vps`): eigenes Compose-Projekt `/root/abfahrt` (`docker-compose.yml` aus `server/deploy/`). Einzige Verbindung nach außen: externes Netz `traefik-network`; Entrypoints `web`/`websecure`, Certresolver `letsencrypt`. **Traefik und die übrigen Dienste (n8n, Cal.com, Nextcloud, `postgres_prod`) werden nicht angefasst.**
+- **Secrets** nur in `/root/abfahrt/.env` (chmod 600, erzeugt mit `server/scripts/gen-env.sh`): DB-Passwörter, 2 Admin-Accounts, Basic-Auth, `PRIZES`, `REVEAL_AT`. Auslesen: `grep -E 'ADMIN_._PASSWORD|BASIC_AUTH_(USER|PASSWORD)' /root/abfahrt/.env`.
+- **Deploy** (kein GitHub-Zugang auf dem Server): `sh server/scripts/sync.sh` (rsync vom Mac) → auf dem VPS `cd /root/abfahrt && docker compose up -d --build`. Schema-Änderungen brauchen eine neue DB (`docker compose down -v`, löscht alle Spielerdaten).
+- **Tests:** `server/test/` laufen auf dem VPS im Wegwerf-Projekt `abfahrt-test` (zweite App-Instanz mit `REVEAL_AT` in der Vergangenheit, gleiche DB) → Befehle oben in `server/deploy/docker-compose.test.yml`. **Lasttest:** `node server/loadtest/loadtest.js` vom Mac (`REVEAL=1` simuliert den 04:00-Ansturm), danach `purge.sh --loadtest`.
+- **Skripte** (`server/scripts/`): `backup.sh` (pg_dump nach `/root/abfahrt/backups`), `purge.sh` (alle Spielerdaten löschen, mit Bestätigung), `gen-env.sh`, `sync.sh`.
 - **Warum nicht n8n als öffentliche API:** größere Angriffsfläche (n8n müsste öffentlich erreichbar sein), n8n **speichert Ausführungen inkl. Payload** (personenbezogene Daten in der n8n-DB), schlechter unter Lastspitzen.
 
 ---
@@ -155,10 +157,10 @@ n8n (intern, nicht öffentlich): Auswertung, Lösch-Job nach dem Event, ggf. Tea
 - Admin: eigene Accounts mit **Passwort-Hash (argon2/bcrypt)**, Session-Cookie httpOnly/Secure/SameSite=Strict; optional zusätzlich Traefik-Basic-Auth oder IP-Allowlist auf `/admin*` + `/api/admin/*`.
 - **Rate-Limiting** (Traefik-Middleware + in der App), v. a. `register`, `vibe`, `admin/login`.
 - Server-seitige **Eingabeprüfung** + Wortfilter, Antworten ohne interne Fehlermeldungen.
-- **Security-Header**: HSTS, CSP (Skripte nur self + jsdelivr für supabase-js → bei Weg C entfällt supabase-js), `X-Frame-Options: DENY`, `Referrer-Policy`.
+- **Security-Header**: HSTS, CSP nur `'self'` (supabase-js entfernt, **Schriften selbst gehostet** in `app/fonts/` – keine Verbindung zu Google), `X-Frame-Options: DENY`, `Referrer-Policy`.
 - **Same-Origin** (Webapp und API unter derselben Domain) → kein CORS nötig.
-- **Logs ohne personenbezogene Daten**; Health-Endpoint fürs Monitoring; Traefik-Access-Logs.
-- **Backup** vor dem Event; **Löschen** aller Spieler/Vibes nach der Verlosung (Datum im Datenschutzhinweis).
+- **Logs ohne personenbezogene Daten** (nur Methode, Route, Status, Dauer); Health-Endpoint fürs Monitoring. Traefik-Access-Logs bewusst **nicht** (Traefik bleibt unverändert).
+- **Backup** vor dem Event (`backup.sh`); **Löschen** aller Spieler/Vibes nach der Verlosung per `purge.sh` auf dem Server, danach `docker compose down -v` + `backups/` löschen (Datum im Datenschutzhinweis). Kein öffentlicher Lösch-Endpunkt, kein n8n.
 - **Lasttest**: QR-Codes vor Ort → viele Anmeldungen gleichzeitig (Einlass, DJ-Ansage). Ziel z. B. 300 Anmeldungen/Minute + Polling aller aktiven Geräte alle 20 s.
 
 ---
@@ -168,19 +170,24 @@ n8n (intern, nicht öffentlich): Auswertung, Lösch-Job nach dem Event, ggf. Tea
 - Verantwortlicher: alfons x; ASK Connect = Auftragsverarbeiter (**AVV** nötig).
 - Für andere sichtbar: **Spaßname + Vibe** (Live-Vibes); Instagram-Handle nur fürs Team.
 - Gespeichert: Spaßname, Instagram-Handle, erledigte Challenges, Vibe (Sterne + Satz), Status/Gewinncode, zufällige Geräte-Kennung im Browser (technisch notwendig, § 25 Abs. 2 TDDDG, kein Cookie-Banner).
-- **Keine Fotos, keine KI**, Daten in der EU, Löschung nach der Verlosung.
-- `app/datenschutz.html` und `app/teilnahmebedingungen.html` sind **Entwürfe mit Platzhaltern** (Datenschutz bewusst minimal: Dienstleister „GitHub Pages / [Tool 1] / [Tool 2]“ – bei Weg C anpassen). Vor dem Start rechtlich prüfen lassen.
+- **Keine Fotos, keine KI**, Daten in der EU (Hostinger, Frankfurt; **AVV mit Hostinger** klärt die Projektleitung), Löschung nach der Verlosung.
+- `app/datenschutz.html` und `app/teilnahmebedingungen.html` sind **Entwürfe mit Platzhaltern** (Datenschutz bewusst minimal: nennt noch „GitHub Pages“ als Dienstleister → **auf Hostinger, Frankfurt ändern**). Vor dem Start rechtlich prüfen lassen.
 
 ---
 
 ## 9. Offene Punkte / To-dos
 
 **Backend (Kollege):**
-- [ ] Finale Freigabe Weg C (vs. Weg B Supabase) – Empfehlung: C
-- [ ] Subdomain + Docker-Netzwerkname + Traefik-Details klären
-- [ ] Node-API-Container + Schema + Admin-Accounts + `store.js`-Live-Teil
-- [ ] Lasttest, Backup, Lösch-Job (n8n intern), Monitoring
-- [ ] Demo-Modus nach Umstellung deaktivieren (aktuell: Demo, solange keine Backend-Konfiguration gesetzt ist)
+- [x] Freigabe Weg C, eigener Postgres-Container statt `postgres_prod`
+- [x] Subdomain `abfahrt.askconnect.de`, Traefik-Labels, eigenes Compose-Projekt `/root/abfahrt`
+- [x] Node-API + Schema + 2 Admin-Accounts + Basic-Auth + `store.js`-Live-Teil (inkl. `reveal`, `adminDrawAll`), API-Tests
+- [x] Demo-Modus nur noch auf `*.github.io`/localhost
+- [ ] Neuen Stand (2 Challenges + Live-Show) auf den VPS deployen (Schema neu → DB wird neu angelegt)
+- [ ] Lasttest 1000 Geräte + 04:00-Ansturm (`REVEAL=1`), danach `purge.sh --loadtest`
+- [ ] Externer Uptime-Check auf `/api/health` (Projektleitung)
+- [ ] Admin-Login auf dem iPhone testen (Basic-Auth + API-Aufrufe in Safari)
+- [ ] VPS-Neustart/Updates vor dem Event einplanen (meldet „System restart required“)
+- [ ] Am Eventtag: `backup.sh`; nach der Verlosung: `purge.sh`, `down -v`, Backups löschen
 
 **Inhalt / Kunde:**
 - [ ] Echter **Ablauf** (Zeiten, DJs, Acts, Ende) → `config.js` `schedule`, `scheduleIsExample:false`
@@ -200,6 +207,7 @@ n8n (intern, nicht öffentlich): Auswertung, Lösch-Job nach dem Event, ggf. Tea
 ## 10. Ressourcen
 
 - Repo: `https://github.com/semo428/Abfahrt26` (Root = Konzept-Kurzfassung, `app/` = Webapp)
+- Live: `https://abfahrt.askconnect.de` · Team: `https://abfahrt.askconnect.de/admin.html`
 - Test-Hosting (Demo): `https://semo428.github.io/Abfahrt26/app/`
 - Videos (lokal beim Projektinhaber, nicht im Repo): Team-Erklärvideo `abfahrt-mission.mp4` (~2:08), Gäste-Clip `abfahrt-gaeste.mp4` (24 s, QR auf Test-URL). Erzeugt automatisiert (Puppeteer-Aufnahme der echten App + ElevenLabs-Stimme „Jessica“); bei App-Änderungen neu rendern.
-- Laufende Kosten (bisher): ManyChat Pro ~39 $ (falls genutzt) · Supabase Pro ~25 $ (nur bei Weg B) · eigener VPS: vorhanden.
+- Laufende Kosten (bisher): ManyChat Pro ~39 $ (falls genutzt) · eigener VPS (Hostinger): vorhanden, keine Zusatzkosten.
