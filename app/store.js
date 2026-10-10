@@ -1,7 +1,8 @@
-// Datenschicht: Supabase (echt) oder localStorage (Demo-Modus).
+// Datenschicht: eigene API unter /api (echt) oder localStorage (Demo-Modus auf GitHub Pages und lokal).
 (function(){
   var C = window.ABFAHRT_CONFIG;
-  var DEMO = !C.supabaseUrl || !C.supabaseAnonKey;
+  var H = location.hostname;
+  var DEMO = /\.github\.io$/.test(H) || H === 'localhost' || H === '127.0.0.1' || location.protocol === 'file:';
   var CHALLENGES = ['photo','vibe'];
 
   function lsGet(k, d){ try{ var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
@@ -166,62 +167,74 @@
   };
 
   // =====================================================================
-  // SUPABASE-BACKEND
+  // LIVE-BACKEND (eigene API, gleiche Domain → kein CORS)
   // =====================================================================
-  var sb = null;
-  function client(){ if (!sb) sb = window.supabase.createClient(C.supabaseUrl, C.supabaseAnonKey, { auth: { persistSession: true, autoRefreshToken: true } }); return sb; }
-  function unwrap(r){ if (r.error) throw new Error(friendly(r.error)); return r.data; }
+  var TOKEN = 'ab_token';   // Geräte-Kennung (256 Bit Zufall), der Server kennt nur ihren Hash
+  function getToken(){ try{ return localStorage.getItem(TOKEN); }catch(e){ return null; } }
+  function setToken(t){ try{ if (t) localStorage.setItem(TOKEN, t); else localStorage.removeItem(TOKEN); }catch(e){} }
   function friendly(e){
-    var m = (e && (e.message || e.details)) || 'Unbekannter Fehler';
-    if (/players_fun_name_key|fun_name_unique/i.test(m)) return 'Diesen Spaßnamen gibt es schon. Nimm einen anderen.';
-    if (/players_ig_unique|ig_handle_unique/i.test(m)) return 'Mit diesem Instagram-Namen ist schon jemand angemeldet.';
+    var m = (e && e.message) || 'Unbekannter Fehler';
+    if (/fun_name_unique/i.test(m)) return 'Diesen Spaßnamen gibt es schon. Nimm einen anderen.';
+    if (/ig_handle_unique/i.test(m)) return 'Mit diesem Instagram-Namen ist schon jemand angemeldet.';
     if (/blocked_text/i.test(m)) return 'Bitte ohne Beleidigungen – formulier deinen Satz neu.';
     if (/not_admin/i.test(m)) return 'Kein Admin-Zugang für dieses Konto.';
     if (/empty_pot/i.test(m)) return 'Niemand im Lostopf (2/2 erledigt).';
+    if (/not_drawn/i.test(m)) return 'Diese Person ist nicht mehr gezogen. Bitte Seite neu laden.';
     if (/locked_after_draw/i.test(m)) return 'Nach der Ziehung kannst du deine Daten nicht mehr selbst löschen. Sprich das Team an.';
-    if (/Failed to fetch|NetworkError/i.test(m)) return 'Keine Verbindung. Bitte Internet prüfen und nochmal versuchen.';
+    if (/already_registered/i.test(m)) return 'Auf diesem Handy bist du schon angemeldet. Bitte Seite neu laden.';
+    if (/not_registered/i.test(m)) return 'Du bist nicht mehr angemeldet. Bitte Seite neu laden.';
+    if (/rate_limited/i.test(m)) return 'Zu viele Versuche. Warte kurz und versuch es dann nochmal.';
+    if (/invalid_input/i.test(m)) return 'Bitte prüf deine Eingabe.';
+    if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'Keine Verbindung. Bitte Internet prüfen und nochmal versuchen.';
+    if (/server_error|db_down|HTTP 5\d\d/i.test(m)) return 'Gerade hakt es bei uns. Bitte gleich nochmal versuchen.';
     return m;
+  }
+  async function api(method, path, body){
+    var headers = {}, t = getToken();
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    if (t) headers.Authorization = 'Bearer ' + t;
+    var r;
+    try{ r = await fetch('/api' + path, { method: method, headers: headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin', cache: 'no-store' }); }
+    catch(e){ throw new Error(friendly(e)); }
+    if (r.status === 204) return null;
+    var data = null; try{ data = await r.json(); }catch(e){}
+    if (!r.ok){
+      var code = (data && data.error) || ('HTTP ' + r.status);
+      var err = new Error(friendly({ message: code })); err.code = code; throw err;
+    }
+    return data;
   }
 
   var live = {
     mode: 'live',
-    init: async function(){
-      var s = await client().auth.getSession();
-      if (!s.data.session){ unwrap(await client().auth.signInAnonymously()); }
+    init: function(){ return Promise.resolve(); },
+    // Server verrät Status/Gewinn/Code erst ab reveal_at
+    me: async function(){
+      if (!getToken()) return null;
+      try{ return await api('GET', '/me'); }
+      catch(e){ if (e.code === 'not_registered'){ setToken(null); return null; } throw e; }
     },
-    // my_player() verrät Gewinn/Status erst ab reveal_at
-    me: async function(){ return unwrap(await client().rpc('my_player')); },
     register: async function(d){
       var err = validate(d); if (err) throw new Error(err);
-      var fn = d.fun_name.trim(), ig = normHandle(d.ig_handle);
-      var character = null;
-      try{
-        var r = await client().functions.invoke('character', { body: { fun_name: fn } });
-        if (!r.error && r.data && r.data.title) character = r.data;
-      }catch(e){}
-      if (!character) character = localCharacter(fn, d.song, d.move);
-      var u = (await client().auth.getUser()).data.user;
-      unwrap(await client().from('players').insert({ id: u.id, fun_name: fn, ig_handle: ig, character: character }));
-      return live.me();
+      var fn = d.fun_name.trim();
+      var r = await api('POST', '/register', { fun_name: fn, ig_handle: normHandle(d.ig_handle), character: localCharacter(fn, d.song, d.move) });
+      setToken(r.token);
+      return r.player;
     },
-    complete: async function(key){ return unwrap(await client().rpc('complete_challenge', { p_key: key })); },
-    submitVibe: async function(stars, text){ unwrap(await client().rpc('submit_vibe', { p_stars: stars, p_text: text })); return live.me(); },
-    stats: async function(){ return unwrap(await client().rpc('public_stats')); },
-    reveal: async function(){ return unwrap(await client().rpc('public_reveal')); },
-    deleteMe: async function(){
-      unwrap(await client().rpc('delete_me'));          // löscht Spieler, Vibes und das anonyme Konto in der Datenbank
-      await client().auth.signOut({ scope: 'local' });  // Sitzung auf dem Handy entfernen; beim Neustart gibt es ein neues Konto
-    },
-    adminLogin: async function(email, pw){ unwrap(await client().auth.signInWithPassword({ email: email, password: pw })); },
+    complete: function(key){ return api('POST', '/challenge', { key: key }); },
+    submitVibe: function(stars, text){ return api('POST', '/vibe', { stars: stars, text: text }); },
+    stats: function(){ return api('GET', '/stats'); },
+    reveal: function(){ return api('GET', '/reveal'); },
+    deleteMe: async function(){ await api('DELETE', '/me'); setToken(null); },
+    adminLogin: async function(email, pw){ await api('POST', '/admin/login', { email: email, password: pw }); },
     adminIsLoggedIn: async function(){
-      var u = (await client().auth.getUser()).data.user; if (!u || u.is_anonymous) return false;
-      var r = await client().rpc('is_admin'); return !r.error && r.data === true;
+      try{ var r = await api('GET', '/admin/session'); return !!(r && r.admin); }catch(e){ return false; }
     },
-    adminOverview: async function(){ return unwrap(await client().rpc('admin_overview')); },
-    adminDrawAll: async function(){ return unwrap(await client().rpc('admin_draw_all')); },
-    adminConfirm: async function(id){ unwrap(await client().rpc('admin_confirm', { p_id: id })); },
-    adminReject: async function(id){ unwrap(await client().rpc('admin_reject', { p_id: id })); },
-    adminLogout: async function(){ await client().auth.signOut(); }
+    adminOverview: function(){ return api('GET', '/admin/overview'); },
+    adminDrawAll: function(){ return api('POST', '/admin/draw-all', {}); },
+    adminConfirm: async function(id){ await api('POST', '/admin/confirm', { id: id }); },
+    adminReject: async function(id){ await api('POST', '/admin/reject', { id: id }); },
+    adminLogout: async function(){ try{ await api('POST', '/admin/logout', {}); }catch(e){} }
   };
 
   window.AbfahrtStore = DEMO ? demo : live;

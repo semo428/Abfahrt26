@@ -1,0 +1,6 @@
+# Build-Kontext ist /root/abfahrt – Secrets und Backups nie ins Image/an den Daemon
+.env
+.env.*
+backups
+**/node_modules
+app/supabase
