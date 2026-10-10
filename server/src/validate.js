@@ -63,8 +63,9 @@ function vibeText(v){
   return s;
 }
 
+// Nur das Abfahrt-Foto wird so abgehakt; der Vibe läuft über /api/vibe
 function challengeKey(v){
-  if (v !== 'random' && v !== 'pose') throw invalid();
+  if (v !== 'photo') throw invalid();
   return v;
 }
 

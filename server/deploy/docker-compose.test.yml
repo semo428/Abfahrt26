@@ -41,21 +41,40 @@ services:
       PGDATABASE: abfahrt
       PGUSER: abfahrt_app
       PGPASSWORD: test-app-pw
-      PRIZE_TOTAL: "2"
+      PRIZES: "meet:2,shirt:1"
+      REVEAL_AT: "2099-01-01T00:00:00Z"
       STATS_CACHE_MS: "0"
       VIBE_MIN_INTERVAL_SEC: "1"
       VIBE_MAX_PER_PLAYER: "2"
       RL_ADMIN_LOGIN_PER_15MIN: "5"
     networks: [internal]
 
-  tests:
+  # gleiche DB, aber Live-Auslosung schon vorbei → prüft Verhalten nach reveal_at
+  app-revealed:
     image: abfahrt-app:test
     depends_on:
       app:
         condition: service_healthy
     environment:
       <<: *test-env
+      PGHOST: db
+      PGDATABASE: abfahrt
+      PGUSER: abfahrt_app
+      PGPASSWORD: test-app-pw
+      PRIZES: "meet:2,shirt:1"
+      REVEAL_AT: "2000-01-01T00:00:00Z"
+      STATS_CACHE_MS: "0"
+    networks: [internal]
+
+  tests:
+    image: abfahrt-app:test
+    depends_on:
+      app-revealed:
+        condition: service_healthy
+    environment:
+      <<: *test-env
       API: http://app:3000
+      API_REVEALED: http://app-revealed:3000
     command: ["node", "--test", "--test-concurrency=1", "test/*.test.js"]
     networks: [internal]
 

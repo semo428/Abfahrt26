@@ -6,8 +6,7 @@ const { ApiError } = require('../errors');
 const { Limiter } = require('../ratelimit');
 const { newToken, hashToken, bearer } = require('../auth');
 const v = require('../validate');
-
-const COLS = 'id, fun_name, ig_handle, character, random_at, vibe_at, pose_at, status, win_code, created_at';
+const { PLAYER_COLS: COLS, revealed, mask } = require('../game');
 const STATS_SQL = `
   select json_build_object(
     'players',    (select count(*) from players)::int,
@@ -16,8 +15,29 @@ const STATS_SQL = `
     'recent',     coalesce((select json_agg(x) from (
                     select p.fun_name, v.stars, v.text
                     from vibes v join players p on p.id = v.player_id
-                    order by v.created_at desc limit 3) x), '[]'::json)
+                    order by v.created_at desc limit 3) x), '[]'::json),
+    'sample',     coalesce((select json_agg(y) from (
+                    select p.fun_name, v.stars, v.text
+                    from vibes v join players p on p.id = v.player_id
+                    order by random() limit 7) y), '[]'::json)
   ) as s`;
+// Live-Auslosung: Spaßnamen zum Durchwürfeln und (erst ab reveal_at) die Gewinner – nur Spaßname + Gewinn
+const NAMES_SQL = 'select coalesce(json_agg(fun_name), \'[]\'::json) as n from (select fun_name from players where photo_at is not null and vibe_at is not null order by random() limit 80) x';
+const WINNERS_SQL = "select coalesce(json_agg(json_build_object('fun_name', fun_name, 'prize', prize)), '[]'::json) as w from players where status in ('drawn', 'won') and prize is not null";
+
+// Ergebnis einer teuren Abfrage für ttl ms zwischenspeichern; parallele Anfragen teilen sich eine DB-Abfrage
+function cached(ttl, load){
+  let at = 0, data, pending = null;
+  return function(){
+    if (at && Date.now() - at < ttl) return Promise.resolve(data);
+    if (!pending){
+      pending = load()
+        .then(function(d){ data = d; at = Date.now(); return d; })
+        .finally(function(){ pending = null; });
+    }
+    return pending;
+  };
+}
 
 module.exports = async function(app){
   const L = config.limits;
@@ -52,20 +72,20 @@ module.exports = async function(app){
         'insert into players (token_hash, fun_name, ig_handle, character) values ($1, $2, $3, $4) returning ' + COLS,
         [hashToken(token), funName, ig, character]);
       reply.code(201);
-      return { token, player: rows[0] };
+      return { token, player: mask(rows[0]) };
     }catch(e){ throw mapPgError(e); }
   });
 
-  app.get('/api/me', async function(req){ return player(req); });
+  // Gezogene sehen vor reveal_at nichts (Status/Gewinn/Code maskiert)
+  app.get('/api/me', async function(req){ return mask(await player(req)); });
 
   // Idempotent: Zeitstempel wird nur gesetzt, wenn er noch leer ist (Offline-Puffer im Frontend sendet ggf. doppelt)
   app.post('/api/challenge', async function(req){
     const key = v.challengeKey(v.body(req).key);
     const p = await player(req);
-    const col = key === 'random' ? 'random_at' : 'pose_at';
-    const { rows } = await pool.query('update players set ' + col + ' = coalesce(' + col + ', now()) where id = $1 returning ' + COLS, [p.id]);
+    const { rows } = await pool.query('update players set photo_at = coalesce(photo_at, now()) where id = $1 returning ' + COLS, [p.id]);
     if (!rows[0]) throw new ApiError(401, 'not_registered');
-    return rows[0];
+    return mask(rows[0]);
   });
 
   app.post('/api/vibe', async function(req){
@@ -83,25 +103,33 @@ module.exports = async function(app){
       )
       select * from p`, [p.id, config.limits.vibeMaxPerPlayer, stars, text]);
     if (!rows[0]) throw new ApiError(429, 'rate_limited');
-    return rows[0];
+    return mask(rows[0]);
   });
 
-  // Öffentliche Zahlen (ohne Instagram-Namen), kurz gecacht: alle Geräte pollen alle 20 s
-  let cache = { at: 0, data: null }, pending = null;
-  app.get('/api/stats', async function(){
-    if (cache.data && Date.now() - cache.at < config.statsCacheMs) return cache.data;
-    if (!pending){
-      pending = pool.query(STATS_SQL)
-        .then(function(r){ cache = { at: Date.now(), data: r.rows[0].s }; return cache.data; })
-        .finally(function(){ pending = null; });
-    }
-    return pending;
+  // Öffentliche Zahlen (ohne Instagram-Namen), gecacht: alle Geräte pollen
+  const statsCache = cached(config.statsCacheMs, async function(){ return (await pool.query(STATS_SQL)).rows[0].s; });
+  app.get('/api/stats', function(){ return statsCache(); });
+
+  // Um reveal_at fragen alle Handys gleichzeitig (jede Sekunde, bis Gewinner kommen) → kurz cachen, Serverzeit immer frisch
+  const namesCache = cached(30000, async function(){ return (await pool.query(NAMES_SQL)).rows[0].n; });
+  const winnersCache = cached(3000, async function(){ return (await pool.query(WINNERS_SQL)).rows[0].w; });
+  app.get('/api/reveal', async function(){
+    const names = await namesCache();
+    return {
+      reveal_at: config.revealAt.toISOString(),
+      now: new Date().toISOString(),
+      names,
+      winners: revealed() ? await winnersCache() : null
+    };
   });
 
-  // Nach der Ziehung (drawn/won/rejected) gesperrt; abgelehnte Handles bleiben so belegt
+  // Vor reveal_at darf jeder löschen (sonst verriete die Sperre, dass man gezogen wurde).
+  // Danach sind drawn/won/rejected gesperrt – abgelehnte Handles bleiben so belegt.
   app.delete('/api/me', async function(req, reply){
     const p = await player(req);
-    const r = await pool.query("delete from players where id = $1 and status = 'active'", [p.id]);
+    const r = revealed()
+      ? await pool.query("delete from players where id = $1 and status = 'active'", [p.id])
+      : await pool.query('delete from players where id = $1', [p.id]);
     if (!r.rowCount) throw new ApiError(409, 'locked_after_draw');
     return reply.code(204).send();
   });

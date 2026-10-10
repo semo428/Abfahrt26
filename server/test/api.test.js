@@ -1,21 +1,24 @@
 'use strict';
-// Ende-zu-Ende-Tests gegen die laufende App (Testprojekt abfahrt-test, PRIZE_TOTAL=2, VIBE_MAX_PER_PLAYER=2).
+// Ende-zu-Ende-Tests gegen die laufende App (Testprojekt abfahrt-test).
+// API = Live-Auslosung noch nicht erreicht (REVEAL_AT 2099), API_REVEALED = gleiche DB, Auslosung vorbei (REVEAL_AT 2000).
+// PRIZES im Test: meet:2, shirt:1 → 3 Gewinnplätze. VIBE_MAX_PER_PLAYER=2, VIBE_MIN_INTERVAL_SEC=1.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const API = process.env.API || 'http://localhost:3000';
+const API_REVEALED = process.env.API_REVEALED || API;
 const ORIGIN = process.env.PUBLIC_ORIGIN;
 const ADMIN = { email: process.env.ADMIN_1_EMAIL, password: process.env.ADMIN_1_PASSWORD };
 const RUN = Date.now().toString(36);
 let seq = 0;
 
-async function call(method, path, { body, token, cookie, origin = ORIGIN, headers = {} } = {}){
+async function call(method, path, { body, token, cookie, origin = ORIGIN, headers = {}, base = API } = {}){
   const h = { ...headers };
   if (body !== undefined) h['content-type'] = 'application/json';
   if (token) h.authorization = 'Bearer ' + token;
   if (cookie) h.cookie = cookie;
   if (origin && method !== 'GET') h.origin = origin;
-  const r = await fetch(API + path, { method, headers: h, body: body === undefined ? undefined : (typeof body === 'string' ? body : JSON.stringify(body)) });
+  const r = await fetch(base + path, { method, headers: h, body: body === undefined ? undefined : (typeof body === 'string' ? body : JSON.stringify(body)) });
   const text = await r.text();
   let json = null; try{ json = JSON.parse(text); }catch(_){}
   return { status: r.status, json, text, headers: r.headers };
@@ -26,9 +29,8 @@ async function register(extra = {}){
   assert.equal(r.status, 201, r.text);
   return r.json;
 }
-async function complete3(token){
-  await call('POST', '/api/challenge', { token, body: { key: 'random' } });
-  await call('POST', '/api/challenge', { token, body: { key: 'pose' } });
+async function complete2(token){
+  assert.equal((await call('POST', '/api/challenge', { token, body: { key: 'photo' } })).status, 200);
   const r = await call('POST', '/api/vibe', { token, body: { stars: 5, text: 'super abend' } });
   assert.equal(r.status, 200, r.text);
   return r.json;
@@ -58,6 +60,93 @@ test('health + Sicherheits-Header + statische Auslieferung', async () => {
   assert.equal(nf.status, 404); assert.deepEqual(nf.json, { error: 'not_found' });
 });
 
+test('Admin: alle auslosen, maskiert bis reveal_at, bestätigen, ablehnen mit Ersatz, Sperren', async () => {
+  assert.equal((await call('GET', '/api/admin/overview')).json.error, 'not_admin');
+  assert.deepEqual((await call('GET', '/api/admin/session')).json, { admin: false });
+  assert.equal((await call('POST', '/api/admin/login', { body: { email: ADMIN.email, password: 'falsch-falsch' } })).json.error, 'not_admin');
+  assert.equal((await call('POST', '/api/admin/login', { body: { email: 'gibts@nicht.de', password: 'egal-egal-egal' } })).json.error, 'not_admin');
+  const cookie = await adminCookie();
+  assert.deepEqual((await call('GET', '/api/admin/session', { cookie })).json, { admin: true });
+
+  assert.equal((await call('POST', '/api/admin/draw-all', { cookie, body: {} })).json.error, 'empty_pot', 'leere DB');
+
+  // 4 Spieler mit 2/2 + 1 nur mit Foto (nicht im Lostopf)
+  const ps = [await register(), await register(), await register(), await register()];
+  for (const p of ps) await complete2(p.token);
+  const half = await register();
+  await call('POST', '/api/challenge', { token: half.token, body: { key: 'photo' } });
+  const byId = Object.fromEntries(ps.map(p => [p.player.id, p]));
+
+  const o0 = (await call('GET', '/api/admin/overview', { cookie })).json;
+  assert.deepEqual({ total: o0.total, eligible: o0.eligible, photo: o0.photo, vibe: o0.vibe, winners: o0.winners }, { total: 5, eligible: 4, photo: 5, vibe: 4, winners: [] });
+
+  // Alle 3 Plätze füllen (meet 2, shirt 1), Antwort = Overview
+  const d = await call('POST', '/api/admin/draw-all', { cookie, body: {} });
+  assert.equal(d.status, 200);
+  const ws = d.json.winners;
+  assert.equal(ws.length, 3);
+  assert.deepEqual(ws.map(w => w.prize), ['meet', 'meet', 'shirt'], 'sortiert nach PRIZES-Reihenfolge');
+  for (const w of ws){
+    assert.ok(byId[w.id]); assert.equal(w.checked, false);
+    assert.match(w.win_code, /^AB-[A-HJ-NP-Z2-9]{6}$/);
+    assert.deepEqual(Object.keys(w).sort(), ['checked', 'fun_name', 'id', 'ig_handle', 'prize', 'win_code']);
+  }
+  assert.equal(d.json.eligible, 1);
+  assert.equal((await call('POST', '/api/admin/draw-all', { cookie, body: {} })).json.winners.length, 3, 'zweites Auslosen ändert nichts');
+
+  // Vor reveal_at: Gast sieht nichts, öffentliche Liste ohne Gewinner
+  const w1 = ws[0], w2 = ws[1], w3 = ws[2];
+  const before = (await call('GET', '/api/me', { token: byId[w1.id].token })).json;
+  assert.equal(before.status, 'active'); assert.equal(before.prize, null); assert.equal(before.win_code, null);
+  const rvBefore = (await call('GET', '/api/reveal')).json;
+  assert.equal(rvBefore.winners, null);
+  assert.equal(rvBefore.reveal_at, '2099-01-01T00:00:00.000Z');
+  assert.ok(Math.abs(Date.parse(rvBefore.now) - Date.now()) < 5000);
+  assert.deepEqual(rvBefore.names.slice().sort(), ps.map(p => p.player.fun_name).sort(), 'nur Spaßnamen aus dem Lostopf (2/2)');
+
+  // Nach reveal_at: Gast sieht Gewinn + Code, öffentliche Liste nur Spaßname + Gewinn
+  const after = (await call('GET', '/api/me', { token: byId[w1.id].token, base: API_REVEALED })).json;
+  assert.equal(after.status, 'drawn'); assert.equal(after.prize, 'meet'); assert.equal(after.win_code, w1.win_code);
+  const rvAfter = (await call('GET', '/api/reveal', { base: API_REVEALED })).json;
+  assert.equal(rvAfter.winners.length, 3);
+  for (const w of rvAfter.winners) assert.deepEqual(Object.keys(w).sort(), ['fun_name', 'prize']);
+  assert.doesNotMatch(JSON.stringify(rvAfter), /t_|AB-/, 'keine Handles, keine Codes');
+
+  // Story gefunden
+  assert.equal((await call('POST', '/api/admin/confirm', { cookie, body: { id: w1.id } })).status, 204);
+  assert.equal((await call('POST', '/api/admin/confirm', { cookie, body: { id: w1.id } })).json.error, 'not_drawn');
+  assert.equal((await call('GET', '/api/admin/overview', { cookie })).json.winners.find(w => w.id === w1.id).checked, true);
+
+  // Keine Story bei w2 (meet) → raus, der letzte im Lostopf rückt für "meet" nach
+  assert.equal((await call('POST', '/api/admin/reject', { cookie, body: { id: w2.id } })).status, 204);
+  const o2 = (await call('GET', '/api/admin/overview', { cookie })).json;
+  assert.equal(o2.winners.length, 3); assert.equal(o2.eligible, 0);
+  const sub = o2.winners.find(w => ![w1.id, w2.id, w3.id].includes(w.id));
+  assert.equal(sub.prize, 'meet'); assert.equal(sub.checked, false);
+  const rej = (await call('GET', '/api/me', { token: byId[w2.id].token, base: API_REVEALED })).json;
+  assert.equal(rej.status, 'rejected'); assert.equal(rej.prize, null); assert.equal(rej.win_code, null);
+
+  // Auch ein bestätigter Gewinner kann noch abgelehnt werden; Lostopf leer → kein Ersatz, Auslosen meldet empty_pot
+  assert.equal((await call('POST', '/api/admin/reject', { cookie, body: { id: w1.id } })).status, 204);
+  assert.equal((await call('GET', '/api/admin/overview', { cookie })).json.winners.length, 2);
+  assert.equal((await call('POST', '/api/admin/draw-all', { cookie, body: {} })).json.error, 'empty_pot');
+  assert.equal((await call('POST', '/api/admin/reject', { cookie, body: { id: w1.id } })).json.error, 'not_drawn');
+  assert.equal((await call('POST', '/api/admin/confirm', { cookie, body: { id: 'kein-uuid' } })).json.error, 'invalid_input');
+
+  // Löschen: nach reveal_at gesperrt für drawn/won/rejected, Handle bleibt belegt
+  assert.equal((await call('POST', '/api/admin/confirm', { cookie, body: { id: sub.id } })).status, 204);
+  for (const id of [w2.id, sub.id, w3.id]){
+    assert.equal((await call('DELETE', '/api/me', { token: byId[id].token, base: API_REVEALED })).json.error, 'locked_after_draw');
+  }
+  assert.equal((await call('POST', '/api/register', { body: { fun_name: 'Neu ' + RUN, ig_handle: byId[w2.id].player.ig_handle } })).json.error, 'ig_handle_unique');
+  // Vor reveal_at darf auch ein Gezogener löschen (sonst verriete die Sperre den Gewinn)
+  assert.equal((await call('DELETE', '/api/me', { token: byId[w3.id].token })).status, 204);
+  assert.equal((await call('GET', '/api/admin/overview', { cookie })).json.winners.length, 1);
+
+  assert.equal((await call('POST', '/api/admin/logout', { cookie, body: {} })).status, 204);
+  assert.deepEqual((await call('GET', '/api/admin/session', { cookie })).json, { admin: false });
+});
+
 test('Anmeldung: Validierung, Eindeutigkeit, ein Eintrag pro Gerät', async () => {
   assert.equal((await call('POST', '/api/register', { body: { fun_name: 'x', ig_handle: 'abc' } })).json.error, 'invalid_input');
   assert.equal((await call('POST', '/api/register', { body: { fun_name: 'Gültig', ig_handle: 'nö!' } })).json.error, 'invalid_input');
@@ -71,7 +160,7 @@ test('Anmeldung: Validierung, Eindeutigkeit, ein Eintrag pro Gerät', async () =
   const p = r.json.player;
   assert.equal(p.fun_name, u.fun_name); assert.equal(p.ig_handle, u.ig_handle); assert.equal(p.status, 'active');
   assert.deepEqual(p.character, { title: 't', superpower: 's', weakness: 'w' });
-  assert.deepEqual(Object.keys(p).sort(), ['character', 'created_at', 'fun_name', 'id', 'ig_handle', 'pose_at', 'random_at', 'status', 'vibe_at', 'win_code']);
+  assert.deepEqual(Object.keys(p).sort(), ['character', 'created_at', 'fun_name', 'id', 'ig_handle', 'photo_at', 'prize', 'status', 'vibe_at', 'win_code']);
 
   assert.equal((await call('POST', '/api/register', { body: { fun_name: u.fun_name.toUpperCase(), ig_handle: 'anders_' + RUN } })).json.error, 'fun_name_unique');
   assert.equal((await call('POST', '/api/register', { body: { fun_name: 'Anders ' + RUN, ig_handle: u.ig_handle } })).json.error, 'ig_handle_unique');
@@ -81,18 +170,18 @@ test('Anmeldung: Validierung, Eindeutigkeit, ein Eintrag pro Gerät', async () =
   assert.equal(noChar.player.character, null);
 });
 
-test('me, Challenges idempotent, Vibe mit Filter und Limits', async () => {
+test('me, Foto-Challenge idempotent, Vibe mit Filter und Limits, Statistik', async () => {
   assert.equal((await call('GET', '/api/me')).json.error, 'not_registered');
   assert.equal((await call('GET', '/api/me', { token: 'A'.repeat(43) })).json.error, 'not_registered');
   const { token } = await register();
   assert.equal((await call('GET', '/api/me', { token })).json.status, 'active');
 
-  assert.equal((await call('POST', '/api/challenge', { token, body: { key: 'vibe' } })).json.error, 'invalid_input');
-  const a = await call('POST', '/api/challenge', { token, body: { key: 'random' } });
-  assert.ok(a.json.random_at);
+  for (const key of ['vibe', 'random', 'pose']) assert.equal((await call('POST', '/api/challenge', { token, body: { key } })).json.error, 'invalid_input');
+  const a = await call('POST', '/api/challenge', { token, body: { key: 'photo' } });
+  assert.ok(a.json.photo_at);
   await sleep(20);
-  const b = await call('POST', '/api/challenge', { token, body: { key: 'random' } });
-  assert.equal(b.json.random_at, a.json.random_at, 'zweites Abhaken ändert nichts');
+  const b = await call('POST', '/api/challenge', { token, body: { key: 'photo' } });
+  assert.equal(b.json.photo_at, a.json.photo_at, 'zweites Abhaken ändert nichts');
 
   assert.equal((await call('POST', '/api/vibe', { token, body: { stars: 6, text: 'ok ok' } })).json.error, 'invalid_input');
   assert.equal((await call('POST', '/api/vibe', { token, body: { stars: 3, text: 'du wichser' } })).json.error, 'blocked_text');
@@ -109,6 +198,8 @@ test('me, Challenges idempotent, Vibe mit Filter und Limits', async () => {
   assert.ok(s.json.players >= 1); assert.ok(s.json.vibe_count >= 2); assert.equal(typeof s.json.vibe_avg, 'number');
   assert.equal(s.json.recent[0].text, 'zweiter');
   assert.equal(s.json.recent[1].text, 'läuft bei mir', 'Leerraum normalisiert');
+  assert.ok(Array.isArray(s.json.sample) && s.json.sample.length >= 1 && s.json.sample.length <= 7);
+  assert.deepEqual(Object.keys(s.json.sample[0]).sort(), ['fun_name', 'stars', 'text']);
   assert.doesNotMatch(s.text, /ig_handle|t_/, 'keine Instagram-Namen in der Statistik');
 });
 
@@ -118,59 +209,12 @@ test('fremde Origin wird abgewiesen', async () => {
   assert.equal((await call('POST', '/api/admin/login', { body: ADMIN, origin: null })).status, 403);
 });
 
-test('Daten löschen', async () => {
-  const { token } = await register();
-  assert.equal((await call('DELETE', '/api/me', { token })).status, 204);
-  assert.equal((await call('GET', '/api/me', { token })).json.error, 'not_registered');
-});
-
-test('Admin: Login, Ziehung, Bestätigen, Ablehnen, Sperren, Obergrenze', async () => {
-  assert.equal((await call('GET', '/api/admin/overview')).json.error, 'not_admin');
-  assert.deepEqual((await call('GET', '/api/admin/session')).json, { admin: false });
-  assert.equal((await call('POST', '/api/admin/login', { body: { email: ADMIN.email, password: 'falsch-falsch' } })).json.error, 'not_admin');
-  assert.equal((await call('POST', '/api/admin/login', { body: { email: 'gibts@nicht.de', password: 'egal-egal-egal' } })).json.error, 'not_admin');
-
-  const cookie = await adminCookie();
-  assert.deepEqual((await call('GET', '/api/admin/session', { cookie })).json, { admin: true });
-
-  // Lostopf leeren: alle bisherigen Test-Spieler mit 3/3 gibt es nicht → genau 3 neue mit 3/3
-  const ps = [await register(), await register(), await register()];
-  for (const p of ps) await complete3(p.token);
-  const byId = Object.fromEntries(ps.map(p => [p.player.id, p]));
-  const o1 = (await call('GET', '/api/admin/overview', { cookie })).json;
-  assert.equal(o1.eligible, 3);
-  assert.doesNotMatch(JSON.stringify(o1), /token/);
-
-  const d1 = await call('POST', '/api/admin/draw', { cookie, body: {} });
-  assert.equal(d1.status, 200); assert.ok(byId[d1.json.id]);
-  assert.equal((await call('GET', '/api/me', { token: byId[d1.json.id].token })).json.status, 'drawn');
-  assert.equal((await call('DELETE', '/api/me', { token: byId[d1.json.id].token })).json.error, 'locked_after_draw');
-
-  const c1 = await call('POST', '/api/admin/confirm', { cookie, body: { id: d1.json.id } });
-  assert.match(c1.json.win_code, /^AB-[A-HJ-NP-Z2-9]{6}$/);
-  assert.equal((await call('POST', '/api/admin/confirm', { cookie, body: { id: d1.json.id } })).json.error, 'not_drawn');
-  const won = (await call('GET', '/api/me', { token: byId[d1.json.id].token })).json;
-  assert.equal(won.status, 'won'); assert.equal(won.win_code, c1.json.win_code);
-
-  const d2 = await call('POST', '/api/admin/draw', { cookie, body: {} });
-  assert.notEqual(d2.json.id, d1.json.id);
-  assert.equal((await call('POST', '/api/admin/reject', { cookie, body: { id: d2.json.id } })).status, 204);
-  const rej = byId[d2.json.id];
-  assert.equal((await call('GET', '/api/me', { token: rej.token })).json.status, 'rejected');
-  assert.equal((await call('DELETE', '/api/me', { token: rej.token })).json.error, 'locked_after_draw');
-  assert.equal((await call('POST', '/api/register', { body: { fun_name: 'Neu ' + RUN, ig_handle: rej.player.ig_handle } })).json.error, 'ig_handle_unique', 'Handle bleibt gesperrt');
-
-  const d3 = await call('POST', '/api/admin/draw', { cookie, body: {} });
-  assert.equal(d3.status, 200);
-  assert.equal((await call('POST', '/api/admin/draw', { cookie, body: {} })).json.error, 'all_prizes_won', '1 won + 1 drawn = PRIZE_TOTAL 2');
-  const o2 = (await call('GET', '/api/admin/overview', { cookie })).json;
-  assert.equal(o2.winners.length, 1); assert.equal(o2.drawn.length, 1); assert.equal(o2.drawn[0].id, d3.json.id);
-  await call('POST', '/api/admin/reject', { cookie, body: { id: d3.json.id } });
-  assert.equal((await call('POST', '/api/admin/draw', { cookie, body: {} })).json.error, 'empty_pot');
-  assert.equal((await call('POST', '/api/admin/confirm', { cookie, body: { id: 'kein-uuid' } })).json.error, 'invalid_input');
-
-  assert.equal((await call('POST', '/api/admin/logout', { cookie, body: {} })).status, 204);
-  assert.deepEqual((await call('GET', '/api/admin/session', { cookie })).json, { admin: false });
+test('Daten löschen (vor und nach reveal_at, Status active)', async () => {
+  for (const base of [API, API_REVEALED]){
+    const { token } = await register();
+    assert.equal((await call('DELETE', '/api/me', { token, base })).status, 204);
+    assert.equal((await call('GET', '/api/me', { token })).json.error, 'not_registered');
+  }
 });
 
 test('Admin-Login Rate-Limit', async () => {

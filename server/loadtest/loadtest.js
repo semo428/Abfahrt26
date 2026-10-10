@@ -1,6 +1,7 @@
 'use strict';
 // Lasttest wie am Abend: DEVICES Handys melden sich über RAMP_SEC verteilt an (Einlass-Spitze),
-// pollen dann alle POLL_SEC Sekunden me + stats (wie das Dashboard) und erledigen nach und nach ihre 3 Challenges.
+// pollen dann alle POLL_SEC Sekunden me + stats (wie das Dashboard) und erledigen nach und nach ihre 2 Challenges.
+// REVEAL=1: zusätzlich ab Start jede Sekunde /api/reveal wie zur Live-Auslosung um 04:00.
 // Alles kommt von EINER IP – entspricht dem Fall „alle Gäste im Club-WLAN“.
 //
 //   node server/loadtest/loadtest.js
@@ -12,6 +13,7 @@ const DEVICES = +(process.env.DEVICES || 1000);
 const RAMP_SEC = +(process.env.RAMP_SEC || 180);
 const DURATION_SEC = +(process.env.DURATION_SEC || 420);
 const POLL_SEC = +(process.env.POLL_SEC || 20);
+const REVEAL = process.env.REVEAL === '1';
 const RUN = Date.now().toString(36).slice(-6);
 
 const stats = {};          // endpoint → { lat: [], codes: {} }
@@ -47,11 +49,12 @@ async function device(i){
   if (r.status !== 201) return;
   registered++;
   const token = r.json.token;
-  const todo = ['random', 'vibe', 'pose'].sort(() => Math.random() - 0.5);
+  const todo = ['photo', 'vibe'].sort(() => Math.random() - 0.5);
   while (Date.now() < endAt){
     await sleep(POLL_SEC * 1000 * (0.8 + Math.random() * 0.4));
     if (Date.now() >= endAt) break;
     await Promise.all([req('me', 'GET', '/api/me', { token }), req('stats', 'GET', '/api/stats')]);
+    if (REVEAL) for (let s = 0; s < POLL_SEC && Date.now() < endAt; s++){ await req('reveal', 'GET', '/api/reveal'); await sleep(1000); }
     if (todo.length && Math.random() < 0.6){
       const k = todo.shift();
       if (k === 'vibe') await req('vibe', 'POST', '/api/vibe', { token, body: { stars: 1 + Math.floor(Math.random() * 5), text: 'lasttest ' + i } });

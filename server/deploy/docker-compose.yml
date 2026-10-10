@@ -23,7 +23,8 @@ services:
       PGUSER: abfahrt_app
       PGPASSWORD: ${APP_DB_PASSWORD:?}
       PUBLIC_ORIGIN: https://${ABFAHRT_HOST:?}
-      PRIZE_TOTAL: ${PRIZE_TOTAL:-13}
+      PRIZES: ${PRIZES:-meet:5,shirt:3,drink:5}
+      REVEAL_AT: ${REVEAL_AT:-2026-10-25T04:00:00+01:00}
       DB_POOL_MAX: ${DB_POOL_MAX:-20}
       ADMIN_1_EMAIL: ${ADMIN_1_EMAIL:?}
       ADMIN_1_PASSWORD: ${ADMIN_1_PASSWORD:?}

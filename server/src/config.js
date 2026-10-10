@@ -22,13 +22,32 @@ function admins(){
   return list;
 }
 
+// Gewinne wie in app/config.js prizes, z. B. "meet:5,shirt:3,drink:5" (Reihenfolge = Reihenfolge beim Ziehen)
+function prizes(){
+  const raw = process.env.PRIZES || 'meet:5,shirt:3,drink:5';
+  return raw.split(',').map(function(part){
+    const m = /^\s*([a-z]+)\s*:\s*(\d+)\s*$/.exec(part);
+    if (!m) throw new Error('env PRIZES ungültig: ' + raw);
+    return { key: m[1], count: +m[2] };
+  });
+}
+
+// Start der Live-Auslosung. Achtung: In der Nacht 24./25.10.2026 endet die Sommerzeit → 04:00 Uhr ist MEZ (+01:00).
+function revealAt(){
+  const v = process.env.REVEAL_AT || '2026-10-25T04:00:00+01:00';
+  const t = Date.parse(v);
+  if (Number.isNaN(t)) throw new Error('env REVEAL_AT ungültig: ' + v);
+  return new Date(t);
+}
+
 module.exports = {
   port: int('PORT', 3000),
   publicOrigin: process.env.PUBLIC_ORIGIN || 'https://abfahrt.askconnect.de',
   staticRoot: process.env.STATIC_ROOT || path.join(__dirname, '..', 'public'),
-  prizeTotal: int('PRIZE_TOTAL', 13),
+  prizes: prizes(),
+  revealAt: revealAt(),
   dbPoolMax: int('DB_POOL_MAX', 20),
-  statsCacheMs: int('STATS_CACHE_MS', 5000),
+  statsCacheMs: int('STATS_CACHE_MS', 30000),   // laut Vertrag 30–60 s ok; alle Geräte pollen
   adminSessionHours: int('ADMIN_SESSION_HOURS', 12),
   limits: {
     registerPerIpPerMin: int('RL_REGISTER_PER_IP_PER_MIN', 600),   // großzügig: viele Gäste können hinter einer IP sitzen

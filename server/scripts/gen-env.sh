@@ -23,6 +23,7 @@ ADMIN_2_PASSWORD=$( [ -n "${2:-}" ] && rand 20 || true )
 ADMIN_BASIC_AUTH='$BA_HASH'
 BASIC_AUTH_USER=team
 BASIC_AUTH_PASSWORD=$BA_PW
-PRIZE_TOTAL=13
+PRIZES=meet:5,shirt:3,drink:5
+REVEAL_AT=2026-10-25T04:00:00+01:00
 EOF
 echo ".env geschrieben ($(wc -l < .env) Zeilen, Rechte 600). Secrets wurden nicht ausgegeben."

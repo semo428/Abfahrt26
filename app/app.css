@@ -314,6 +314,19 @@ button.task:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
 .prizes b{font-size:13.5px;line-height:1.2}
 .prizes small{color:var(--ash);font-size:12px;line-height:1.2}
 
+/* Live-Vibes-Fenster (klein, wischbar) */
+.vibes{border:1px solid var(--line);border-radius:16px;padding:12px 0 12px 14px;background:var(--night-2);display:grid;gap:8px}
+.vibes-head{display:flex;justify-content:space-between;align-items:baseline;padding-right:14px}
+.vibes-avg{font-family:var(--display);font-weight:800;font-size:15px}
+.vibes-avg em{font-style:normal;color:var(--signal)}
+.vibes-strip{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-right:14px}
+.vibes-strip::-webkit-scrollbar{display:none}
+.vb{flex:0 0 72%;scroll-snap-align:start;border-radius:12px;padding:9px 12px;background:linear-gradient(160deg,rgba(229,64,42,.16),rgba(229,64,42,.04));border:1px solid rgba(229,64,42,.3);display:grid;gap:2px;min-height:76px}
+.vb .vs{color:var(--signal);font-size:13px;letter-spacing:1px}
+.vb .vs i{font-style:normal;color:var(--ash-dim)}
+.vb p{font-size:14.5px;line-height:1.3;color:var(--bone);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.vb small{font-size:12px;color:var(--ash)}
+
 /* Fuß */
 .foot{display:flex;flex-wrap:wrap;gap:6px 16px;justify-content:center;font-size:12.5px;color:var(--ash-dim);padding-top:8px}
 .foot a{color:var(--ash)}
@@ -340,3 +353,61 @@ button.task:focus-visible{outline:2px solid var(--signal);outline-offset:2px}
   .live-code::before,.spin{animation:none}
   .bar i{transition:none}
 }
+
+/* ---------- Live-Auslosung ---------- */
+.draw-card{border-radius:18px;padding:18px 16px;text-align:center;display:grid;gap:6px;justify-items:center;
+  background:radial-gradient(120% 90% at 50% 0%,rgba(229,64,42,.28),transparent 70%),var(--night-2);border:1px solid rgba(229,64,42,.55)}
+.draw-card .eyebrow{color:var(--signal)}
+.draw-cd{font-family:var(--display);font-weight:800;font-size:clamp(30px,9.5vw,42px);line-height:1.05;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.draw-card p{color:var(--ash);font-size:14.5px;max-width:30ch}
+.draw-card p b{color:var(--bone)}
+.draw-card.done b{font-family:var(--display);font-weight:800;font-size:26px;text-transform:lowercase}
+.draw-card.done .btn{margin-top:6px}
+.win-prize{display:grid;justify-items:center;gap:2px;background:rgba(13,7,6,.35);border-radius:16px;padding:12px 14px}
+.win-prize span{font-size:34px;line-height:1}
+.win-prize b{font-family:var(--display);font-weight:800;font-size:22px}
+.win-prize small{color:rgba(243,234,230,.8)}
+.win-go{font-size:17px}
+.win-go b{color:#fff}
+
+body.show-open{overflow:hidden}
+.show{position:fixed;inset:0;z-index:100;overflow:auto;display:flex;flex-direction:column;gap:18px;
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 24px);
+  background:radial-gradient(130% 70% at 50% 0%,rgba(229,64,42,.35),transparent 65%),var(--night);color:var(--bone)}
+.show.final{background:radial-gradient(140% 80% at 50% 10%,rgba(229,64,42,.55),transparent 70%),var(--brick-deep)}
+.show-top{display:flex;justify-content:space-between;align-items:center}
+.show-top .eyebrow{color:var(--signal)}
+.show.final .show-top .eyebrow{color:#fff}
+.show-x{background:rgba(243,234,230,.1);border:0;color:var(--bone);width:40px;height:40px;border-radius:50%;font-size:24px;line-height:1;cursor:pointer}
+.show-intro{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;animation:pop .5s ease-out}
+.show[data-phase="intro"] .show-intro{display:flex}
+.show[data-phase="intro"] .show-main{display:none}
+.show-round{font-family:var(--display);font-weight:800;font-size:clamp(52px,17vw,88px);line-height:.9;letter-spacing:-.04em;text-transform:lowercase}
+.show.final .show-round{font-size:clamp(60px,19vw,104px);color:#fff;text-shadow:0 0 40px rgba(229,64,42,.9)}
+.show-icon{font-size:56px;line-height:1.1}
+.show-intro b{font-family:var(--display);font-size:24px}
+.show-intro small{color:var(--ash)}
+.show-main{flex:1;display:flex;flex-direction:column;gap:14px;justify-content:center}
+.show-prize{text-align:center;font-family:var(--display);font-weight:700;font-size:18px}
+.show-cd{font-family:var(--display);font-weight:800;font-size:clamp(96px,32vw,150px);line-height:.85;text-align:center;color:var(--signal);font-variant-numeric:tabular-nums;min-height:.9em}
+.show.final .show-cd{color:#fff;text-shadow:0 0 50px rgba(229,64,42,.95)}
+.show-cd.tick{animation:pop .45s ease-out}
+.show-slots{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.show-slot{border-radius:14px;padding:11px 14px;text-align:center;background:rgba(243,234,230,.07);border:1px solid var(--line)}
+.show-slot b{font-family:var(--display);font-weight:800;font-size:20px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.45;filter:blur(.6px)}
+.show.final .show-slot b{font-size:24px}
+.show-slot.locked{background:var(--signal);border-color:var(--signal);animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+.show-slot.locked b{opacity:1;filter:none;color:#fff}
+.show-slot.me{background:#fff;border-color:#fff;box-shadow:0 0 0 4px var(--signal),0 0 40px rgba(229,64,42,.9)}
+.show-slot.me b{color:var(--signal)}
+.show-slot.me b::after{content:" – du!"}
+@keyframes pop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+.sum{display:grid;gap:16px}
+.sum-you{border-radius:16px;padding:16px;background:var(--signal);display:grid;gap:4px;text-align:center}
+.sum-you b{font-family:var(--display);font-weight:800;font-size:26px;text-transform:lowercase}
+.sum-group{display:grid;gap:8px}
+.sum-group ul{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px}
+.sum-group li{border:1px solid var(--line-strong);border-radius:999px;padding:6px 12px;font-weight:600}
+.sum-group li.me{background:var(--signal);border-color:var(--signal);color:#fff}
+.sum-group li i{font-style:normal;font-family:var(--mono);font-size:11px;text-transform:uppercase}
+@media (prefers-reduced-motion:reduce){.show-intro,.show-cd.tick,.show-slot.locked{animation:none}}

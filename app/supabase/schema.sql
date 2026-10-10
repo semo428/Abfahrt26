@@ -8,10 +8,10 @@ create table if not exists public.players (
   fun_name    text not null check (char_length(trim(fun_name)) between 2 and 24),
   ig_handle   text not null check (ig_handle ~ '^[a-z0-9._]{1,30}$'),
   character   jsonb,
-  random_at   timestamptz,
+  photo_at    timestamptz,
   vibe_at     timestamptz,
-  pose_at     timestamptz,
   status      text not null default 'active' check (status in ('active','drawn','won','rejected')),
+  prize       text check (prize in ('meet','shirt','drink')),   -- Gewinn, sobald gezogen (siehe config.js prizes)
   win_code    text,
   created_at  timestamptz not null default now()
 );
@@ -26,6 +26,14 @@ create table if not exists public.vibes (
   created_at timestamptz not null default now()
 );
 
+-- Zeitpunkt der Live-Auslosung. Vorher gibt der Server keine Gewinner heraus.
+-- Achtung: In der Nacht 24./25.10.2026 endet die Sommerzeit (03:00 -> 02:00) – 04:00 Uhr ist dann MEZ (+01).
+create table if not exists public.settings (
+  id        int primary key default 1 check (id = 1),
+  reveal_at timestamptz not null
+);
+insert into public.settings (id, reveal_at) values (1, '2026-10-25 04:00:00+01') on conflict (id) do nothing;
+
 create table if not exists public.admins (
   user_id uuid primary key references auth.users(id) on delete cascade
 );
@@ -34,17 +42,17 @@ create table if not exists public.admins (
 alter table public.players enable row level security;
 alter table public.vibes   enable row level security;
 alter table public.admins  enable row level security;
+alter table public.settings enable row level security;
 
--- Jeder sieht nur seinen eigenen Eintrag
+-- Kein direktes Lesen der Tabelle (sonst sähe ein Gewinner seinen Status vor der Live-Auslosung).
+-- Eigene Daten gibt es nur über my_player().
 drop policy if exists players_select_own on public.players;
-create policy players_select_own on public.players for select to authenticated
-  using (id = auth.uid());
 
 -- Anmelden: nur den eigenen Eintrag, nur im Startzustand (keine geschenkten Häkchen)
 drop policy if exists players_insert_own on public.players;
 create policy players_insert_own on public.players for insert to authenticated
   with check (id = auth.uid() and status = 'active' and win_code is null
-              and random_at is null and vibe_at is null and pose_at is null);
+              and photo_at is null and vibe_at is null and prize is null);
 -- Kein UPDATE/DELETE für Spieler – Änderungen nur über die Funktionen unten.
 -- vibes/admins: keine Policies → nur über Funktionen erreichbar.
 
@@ -54,19 +62,31 @@ language sql stable security definer set search_path = public as $$
   select exists (select 1 from public.admins where user_id = auth.uid());
 $$;
 
--- Challenge abhaken (random / pose). Vibe läuft über submit_vibe.
-create or replace function public.complete_challenge(p_key text) returns public.players
+create or replace function public.revealed() returns boolean
+language sql stable security definer set search_path = public as $$
+  select now() >= (select reveal_at from public.settings where id = 1);
+$$;
+
+-- Eigener Eintrag; Status/Gewinn/Code erst ab reveal_at (vorher sieht jeder "active")
+create or replace function public.my_player() returns json
+language sql stable security definer set search_path = public as $$
+  select case when p.id is null then null else json_build_object(
+    'id', p.id, 'fun_name', p.fun_name, 'ig_handle', p.ig_handle, 'character', p.character,
+    'photo_at', p.photo_at, 'vibe_at', p.vibe_at, 'created_at', p.created_at,
+    'status',   case when public.revealed() then p.status else 'active' end,
+    'prize',    case when public.revealed() then p.prize end,
+    'win_code', case when public.revealed() then p.win_code end) end
+  from (select 1) d left join public.players p on p.id = auth.uid();
+$$;
+
+-- Foto-Challenge abhaken (key 'photo'). Vibe läuft über submit_vibe.
+create or replace function public.complete_challenge(p_key text) returns json
 language plpgsql security definer set search_path = public as $$
-declare r public.players;
 begin
-  if p_key not in ('random','pose') then raise exception 'invalid_key'; end if;
-  update public.players set
-    random_at = case when p_key = 'random' then coalesce(random_at, now()) else random_at end,
-    pose_at   = case when p_key = 'pose'   then coalesce(pose_at,   now()) else pose_at   end
-  where id = auth.uid()
-  returning * into r;
-  if r.id is null then raise exception 'not_registered'; end if;
-  return r;
+  if p_key <> 'photo' then raise exception 'invalid_key'; end if;
+  update public.players set photo_at = coalesce(photo_at, now()) where id = auth.uid();
+  if not found then raise exception 'not_registered'; end if;
+  return public.my_player();
 end $$;
 
 -- Vibe abschicken (mit einfachem Wortfilter)
@@ -91,7 +111,26 @@ language sql stable security definer set search_path = public as $$
     'recent',     coalesce((select json_agg(x) from (
                      select p.fun_name, v.stars, v.text
                      from public.vibes v join public.players p on p.id = v.player_id
-                     order by v.created_at desc limit 3) x), '[]'::json)
+                     order by v.created_at desc limit 3) x), '[]'::json),
+    'sample',     coalesce((select json_agg(y) from (
+                     select p.fun_name, v.stars, v.text
+                     from public.vibes v join public.players p on p.id = v.player_id
+                     order by random() limit 7) y), '[]'::json)
+  );
+$$;
+
+-- Live-Auslosung: Startzeit, Serverzeit (zum Uhr-Abgleich), Spaßnamen zum Durchwürfeln,
+-- Gewinner (nur Spaßname + Gewinn) erst ab reveal_at – vorher null.
+create or replace function public.public_reveal() returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'reveal_at', (select reveal_at from public.settings where id = 1),
+    'now',       now(),
+    'names',     coalesce((select json_agg(fun_name) from (
+                   select fun_name from public.players where photo_at is not null and vibe_at is not null
+                   order by random() limit 80) n), '[]'::json),
+    'winners',   case when public.revealed() then coalesce((select json_agg(json_build_object('fun_name', fun_name, 'prize', prize))
+                   from public.players where status in ('drawn','won') and prize is not null), '[]'::json) end
   );
 $$;
 
@@ -99,7 +138,7 @@ $$;
 create or replace function public.delete_me() returns void
 language plpgsql security definer set search_path = public, auth as $$
 begin
-  if exists (select 1 from public.players where id = auth.uid() and status in ('drawn','won')) then
+  if public.revealed() and exists (select 1 from public.players where id = auth.uid() and status in ('drawn','won')) then
     raise exception 'locked_after_draw';
   end if;
   delete from public.players where id = auth.uid();          -- vibes löschen sich per cascade mit
@@ -113,52 +152,78 @@ begin
   if not public.is_admin() then raise exception 'not_admin'; end if;
   return json_build_object(
     'total',    (select count(*) from public.players),
-    'eligible', (select count(*) from public.players where status = 'active' and random_at is not null and vibe_at is not null and pose_at is not null),
-    'random',   (select count(*) from public.players where random_at is not null),
+    'eligible', (select count(*) from public.players where status = 'active' and photo_at is not null and vibe_at is not null),
+    'photo',    (select count(*) from public.players where photo_at is not null),
     'vibe',     (select count(*) from public.players where vibe_at is not null),
-    'pose',     (select count(*) from public.players where pose_at is not null),
-    'winners',  coalesce((select json_agg(json_build_object('fun_name', fun_name, 'ig_handle', ig_handle, 'win_code', win_code)) from public.players where status = 'won'), '[]'::json),
-    'drawn',    coalesce((select json_agg(json_build_object('id', id, 'fun_name', fun_name, 'ig_handle', ig_handle)) from public.players where status = 'drawn'), '[]'::json)
+    -- alle Gezogenen: checked=false -> Story noch prüfen
+    'winners',  coalesce((select json_agg(json_build_object('id', id, 'fun_name', fun_name, 'ig_handle', ig_handle, 'prize', prize,
+                  'win_code', win_code, 'checked', status = 'won') order by prize) from public.players where status in ('drawn','won')), '[]'::json)
   );
 end $$;
 
-create or replace function public.admin_draw() returns json
+-- Hilfsfunktion: einen Gewinner für p_prize ziehen
+create or replace function public.draw_one(p_prize text) returns uuid
 language plpgsql security definer set search_path = public as $$
-declare r public.players;
+declare v uuid;
 begin
-  if not public.is_admin() then raise exception 'not_admin'; end if;
-  select * into r from public.players
-    where status = 'active' and random_at is not null and vibe_at is not null and pose_at is not null
-    order by random() limit 1
-    for update skip locked;
-  if r.id is null then raise exception 'empty_pot'; end if;
-  update public.players set status = 'drawn' where id = r.id;
-  return json_build_object('id', r.id, 'fun_name', r.fun_name, 'ig_handle', r.ig_handle);
+  select id into v from public.players
+    where status = 'active' and photo_at is not null and vibe_at is not null
+    order by random() limit 1 for update skip locked;
+  if v is not null then
+    update public.players set status = 'drawn', prize = p_prize,
+      win_code = 'AB-' || upper(substr(md5(gen_random_uuid()::text), 1, 6)) where id = v;
+  end if;
+  return v;
 end $$;
 
-create or replace function public.admin_confirm(p_id uuid) returns json
+-- Alle freien Gewinnplätze füllen (Anzahlen wie in config.js prizes)
+create or replace function public.admin_draw_all() returns json
 language plpgsql security definer set search_path = public as $$
-declare c text := 'AB-' || upper(substr(md5(gen_random_uuid()::text), 1, 6));
+declare pr record; have int;
 begin
   if not public.is_admin() then raise exception 'not_admin'; end if;
-  update public.players set status = 'won', win_code = c where id = p_id and status = 'drawn';
-  return json_build_object('win_code', c);
+  if not exists (select 1 from public.players where status = 'active' and photo_at is not null and vibe_at is not null) then
+    raise exception 'empty_pot';
+  end if;
+  for pr in select * from (values ('meet', 5), ('shirt', 3), ('drink', 5)) as t(k, n) loop
+    select count(*) into have from public.players where prize = pr.k and status in ('drawn','won');
+    for i in 1 .. greatest(pr.n - have, 0) loop
+      exit when public.draw_one(pr.k) is null;
+    end loop;
+  end loop;
+  return public.admin_overview();
 end $$;
 
+-- Story gefunden
+create or replace function public.admin_confirm(p_id uuid) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'not_admin'; end if;
+  update public.players set status = 'won' where id = p_id and status = 'drawn';
+end $$;
+
+-- Keine Story -> raus, für denselben Gewinn sofort neu ziehen
 create or replace function public.admin_reject(p_id uuid) returns void
 language plpgsql security definer set search_path = public as $$
+declare k text;
 begin
   if not public.is_admin() then raise exception 'not_admin'; end if;
-  update public.players set status = 'rejected' where id = p_id and status = 'drawn';
+  select prize into k from public.players where id = p_id and status in ('drawn','won') for update;
+  update public.players set status = 'rejected', prize = null, win_code = null where id = p_id and status in ('drawn','won');
+  if k is not null then perform public.draw_one(k); end if;
 end $$;
 
 -- ---------- Rechte ----------
 revoke all on function public.delete_me() from public, anon;
 grant execute on function public.delete_me() to authenticated;
-revoke all on function public.complete_challenge(text), public.submit_vibe(int, text), public.public_stats(),
-  public.is_admin(), public.admin_overview(), public.admin_draw(), public.admin_confirm(uuid), public.admin_reject(uuid) from public, anon;
-grant execute on function public.complete_challenge(text), public.submit_vibe(int, text), public.public_stats(),
-  public.is_admin(), public.admin_overview(), public.admin_draw(), public.admin_confirm(uuid), public.admin_reject(uuid) to authenticated;
+drop function if exists public.admin_draw();
+revoke all on function public.draw_one(text) from public, anon, authenticated;
+revoke all on function public.complete_challenge(text), public.submit_vibe(int, text), public.public_stats(), public.public_reveal(),
+  public.my_player(), public.revealed(), public.is_admin(), public.admin_overview(), public.admin_draw_all(),
+  public.admin_confirm(uuid), public.admin_reject(uuid) from public, anon;
+grant execute on function public.complete_challenge(text), public.submit_vibe(int, text), public.public_stats(), public.public_reveal(),
+  public.my_player(), public.revealed(), public.is_admin(), public.admin_overview(), public.admin_draw_all(),
+  public.admin_confirm(uuid), public.admin_reject(uuid) to authenticated;
 
 -- ---------- Team-Admin anlegen ----------
 -- 1) Authentication → Users → "Add user" (E-Mail + Passwort) fürs Team
