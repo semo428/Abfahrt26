@@ -192,7 +192,8 @@
   async function api(method, path, body){
     var headers = {}, t = getToken();
     if (body !== undefined) headers['Content-Type'] = 'application/json';
-    if (t) headers.Authorization = 'Bearer ' + t;
+    // Gäste-Token nie an /admin/ schicken: dort braucht Traefik den Authorization-Header für die Basic-Auth
+    if (t && path.indexOf('/admin/') !== 0) headers.Authorization = 'Bearer ' + t;
     var r;
     try{ r = await fetch('/api' + path, { method: method, headers: headers, body: body === undefined ? undefined : JSON.stringify(body), credentials: 'same-origin', cache: 'no-store' }); }
     catch(e){ throw new Error(friendly(e)); }
