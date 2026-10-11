@@ -5,7 +5,7 @@
 # Danach für das komplette Ende:  cd /root/abfahrt && docker compose down -v && rm -rf backups && docker image rm abfahrt-app:local
 set -eu
 cd "$(dirname "$0")/../.."
-psql(){ docker compose exec -T db psql -U abfahrt_owner -d abfahrt -v ON_ERROR_STOP=1 -At "$@"; }
+psql(){ docker compose exec -T db psql -U abfahrt_owner -d abfahrt -v ON_ERROR_STOP=1 -At "$@" </dev/null; }   # sonst schluckt exec die Eingabe für die Rückfrage
 
 if [ "${1:-}" = "--loadtest" ]; then
   n=$(psql -c "with d as (delete from players where ig_handle like 'lt\_%' returning 1) select count(*) from d")
