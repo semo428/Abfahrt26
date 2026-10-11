@@ -31,6 +31,8 @@ services:
       ADMIN_1_PASSWORD: ${ADMIN_1_PASSWORD:?}
       ADMIN_2_EMAIL: ${ADMIN_2_EMAIL:-}
       ADMIN_2_PASSWORD: ${ADMIN_2_PASSWORD:-}
+      ADMIN_3_EMAIL: ${ADMIN_3_EMAIL:-}
+      ADMIN_3_PASSWORD: ${ADMIN_3_PASSWORD:-}
       RL_REGISTER_PER_IP_PER_MIN: ${RL_REGISTER_PER_IP_PER_MIN:-600}
       RL_TOKEN_PER_MIN: ${RL_TOKEN_PER_MIN:-60}
     mem_limit: 384m
@@ -63,9 +65,9 @@ services:
       - "traefik.http.routers.abfahrt-admin.service=abfahrt"
       - "traefik.http.middlewares.abfahrt-admin-auth.basicauth.users=${ADMIN_BASIC_AUTH:?}"
       - "traefik.http.middlewares.abfahrt-admin-auth.basicauth.realm=Abfahrt Team"
-      # Großzügig pro IP (viele Gäste hinter einer IP möglich); das eigentliche Limit macht die App pro Token
-      - "traefik.http.middlewares.abfahrt-ratelimit.ratelimit.average=200"
-      - "traefik.http.middlewares.abfahrt-ratelimit.ratelimit.burst=500"
+      # Großzügig pro IP (Club-WLAN/Carrier-NAT: viele Gäste hinter einer IP, Spitze um 04:00); das eigentliche Limit macht die App pro Token
+      - "traefik.http.middlewares.abfahrt-ratelimit.ratelimit.average=1000"
+      - "traefik.http.middlewares.abfahrt-ratelimit.ratelimit.burst=2000"
       - "traefik.http.middlewares.abfahrt-ratelimit.ratelimit.period=1s"
       - "traefik.http.services.abfahrt.loadbalancer.server.port=3000"
 

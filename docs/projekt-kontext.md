@@ -134,7 +134,7 @@ Das Frontend greift **nur** über `app/store.js` auf Daten zu. Der Live-Teil dor
 ## 6. Architektur Weg C (umgesetzt)
 
 ```
-Gast-Handy ──HTTPS──▶ Traefik (TLS Let's Encrypt, Rate-Limit 200/s pro IP, Basic-Auth vor /admin*)
+Gast-Handy ──HTTPS──▶ Traefik (TLS Let's Encrypt, Rate-Limit 1000/s pro IP, Burst 2000, Basic-Auth vor /admin*)
                          └──▶ abfahrt-app (Node 24, Fastify, 384 MB)     [traefik-network + abfahrt_internal]
                                 ├─ liefert app/ statisch aus (/, /admin.html, …; ohne app/supabase)
                                 └─ /api/*  ──(abfahrt_internal, ohne Internet)──▶ abfahrt-db (Postgres 16, 512 MB)
@@ -143,7 +143,7 @@ Gast-Handy ──HTTPS──▶ Traefik (TLS Let's Encrypt, Rate-Limit 200/s pro
 
 - **Live:** `https://abfahrt.askconnect.de` · Team: `https://abfahrt.askconnect.de/admin.html` (erst Basic-Auth „team“, dann E-Mail + Passwort) · Health: `/api/health`.
 - **VPS** (Hostinger, Frankfurt, `ssh vps`): eigenes Compose-Projekt `/root/abfahrt` (`docker-compose.yml` aus `server/deploy/`). Einzige Verbindung nach außen: externes Netz `traefik-network`; Entrypoints `web`/`websecure`, Certresolver `letsencrypt`. **Traefik und die übrigen Dienste (n8n, Cal.com, Nextcloud, `postgres_prod`) werden nicht angefasst.**
-- **Secrets** nur in `/root/abfahrt/.env` (chmod 600, erzeugt mit `server/scripts/gen-env.sh`): DB-Passwörter, 2 Admin-Accounts, Basic-Auth, `PRIZES`, `REVEAL_AT`. Auslesen: `grep -E 'ADMIN_._PASSWORD|BASIC_AUTH_(USER|PASSWORD)' /root/abfahrt/.env`.
+- **Secrets** nur in `/root/abfahrt/.env` (chmod 600, erzeugt mit `server/scripts/gen-env.sh`): DB-Passwörter, 3 Admin-Accounts (ASK Connect ×2 + Kunde, `ADMIN_1..3`), Basic-Auth (Nutzer `team` + `alfons` für den Kunden), `PRIZES`, `REVEAL_AT`. Auslesen: `grep -E 'ADMIN_._PASSWORD|BASIC_AUTH_(USER|PASSWORD)' /root/abfahrt/.env`.
 - **Deploy** (kein GitHub-Zugang auf dem Server): `sh server/scripts/sync.sh` (rsync vom Mac) → auf dem VPS `cd /root/abfahrt && docker compose up -d --build`. Schema-Änderungen brauchen eine neue DB (`docker compose down -v`, löscht alle Spielerdaten).
 - **Tests:** `server/test/` laufen auf dem VPS im Wegwerf-Projekt `abfahrt-test` (zweite App-Instanz mit `REVEAL_AT` in der Vergangenheit, gleiche DB) → Befehle oben in `server/deploy/docker-compose.test.yml`. **Lasttest:** `node server/loadtest/loadtest.js` vom Mac (`REVEAL=1` simuliert den 04:00-Ansturm), danach `purge.sh --loadtest`.
 - **Skripte** (`server/scripts/`): `backup.sh` (pg_dump nach `/root/abfahrt/backups`), `purge.sh` (alle Spielerdaten löschen, mit Bestätigung), `gen-env.sh`, `sync.sh`.
