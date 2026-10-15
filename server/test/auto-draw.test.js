@@ -32,7 +32,7 @@ test('lost automatisch genau einmal, sobald jemand im Lostopf ist', async () => 
 
   const tokens = [];
   for (let i = 0; i < 3; i++){
-    const r = await call('POST', '/api/register', { body: { fun_name: 'Auto ' + RUN + i, ig_handle: 'auto_' + RUN + '_' + i } });
+    const r = await call('POST', '/api/register', { body: { ig_handle: 'auto_' + RUN + '_' + i } });
     assert.equal(r.status, 201);
     tokens.push(r.json.token);
   }

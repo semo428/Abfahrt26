@@ -411,3 +411,27 @@ body.show-open{overflow:hidden}
 .sum-group li.me{background:var(--signal);border-color:var(--signal);color:#fff}
 .sum-group li i{font-style:normal;font-family:var(--mono);font-size:11px;text-transform:uppercase}
 @media (prefers-reduced-motion:reduce){.show-intro,.show-cd.tick,.show-slot.locked{animation:none}}
+
+/* ---------- Spaßname per Los ---------- */
+.name-hint{display:flex;gap:10px;align-items:flex-start;font-size:14px;color:var(--ash);padding:10px 12px;border-radius:12px;background:rgba(243,234,230,.05);border:1px dashed var(--line-strong)}
+.name-hint b{color:var(--bone)}
+.name-roll{border-radius:18px;padding:22px 16px;text-align:center;display:grid;gap:6px;background:var(--night-2);border:1px solid var(--line-strong)}
+.name-roll small{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ash)}
+.name-roll b{font-family:var(--display);font-weight:800;font-size:clamp(28px,9vw,40px);line-height:1.05;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.name-roll.rolling b{opacity:.55;filter:blur(.5px)}
+.name-roll.locked{background:var(--signal);border-color:var(--signal);animation:pop .5s cubic-bezier(.2,1.6,.4,1)}
+.name-roll.locked small{color:rgba(255,255,255,.85)}
+.name-roll.locked b{color:#fff}
+@media (prefers-reduced-motion:reduce){.name-roll.locked{animation:none}}
+
+/* ---------- Lageplan (Gebäude nach Skizze) ---------- */
+.floorplan .bld{fill:rgba(243,234,230,.05);stroke:var(--bone);stroke-width:3}
+.floorplan .part{stroke:rgba(243,234,230,.55);stroke-width:2.5}
+.floorplan .door{stroke:var(--ok);stroke-width:6}
+.floorplan .arrow{stroke:var(--ok);stroke-width:4}
+.floorplan .arrowhead{fill:var(--ok)}
+.floorplan .lbl.big{font-size:22px;font-weight:800;letter-spacing:.02em}
+.floorplan .lbl.eyebrow{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.14em;fill:var(--signal)}
+.floorplan .lbl.tiny{font-family:var(--body);font-weight:600;font-size:12px;fill:var(--ash)}
+.floorplan .lbl.start{text-anchor:start}
+.after-roll{display:grid;gap:14px}

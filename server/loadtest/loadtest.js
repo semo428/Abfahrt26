@@ -48,7 +48,7 @@ async function req(name, method, path, { body, token } = {}){
 async function device(i){
   await sleep(Math.random() * RAMP_SEC * 1000);
   await req('stats', 'GET', '/api/stats');                       // Startseite zeigt den Zähler
-  const r = await req('register', 'POST', '/api/register', { body: { fun_name: 'LT ' + RUN + ' ' + i, ig_handle: 'lt_' + RUN + '_' + i, character: { title: 'die legende', superpower: 'testet', weakness: 'nichts' } } });
+  const r = await req('register', 'POST', '/api/register', { body: { ig_handle: 'lt_' + RUN + '_' + i } });
   if (r.status !== 201) return;
   registered++;
   const token = r.json.token;

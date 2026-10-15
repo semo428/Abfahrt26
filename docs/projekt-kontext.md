@@ -9,7 +9,7 @@ Dieses Dokument fasst Ziel, Verlauf, Entscheidungen (mit Begründung), den aktue
 ## 1. Ziel und Grundidee
 
 - Die jährlich größte Party des Clubs heißt **„Abfahrt“**. Der Inhaber will an dem Abend **deutlich mehr Instagram-Reichweite** (Views, Story-Views, Erwähnungen, Profilaufrufe).
-- Mechanik: Gäste öffnen eine **Webapp** (per QR-Code vor Ort), melden sich mit **Spaßname + Instagram-Handle** an und erledigen **2 Challenges** (seit 07.10.; vorher 3). Die Foto-Challenge erzeugt eine **Instagram-Story mit Markierung @alfonsx_sigmaringen** – jede Story bringt die Bar in die Feeds der Freunde, das Team repostet die besten in die Bar-Story.
+- Mechanik: Gäste öffnen eine **Webapp** (per QR-Code vor Ort), melden sich mit ihrem **Instagram-Handle** an und bekommen einen **Spaßnamen zugelost** (seit 15.10.) und erledigen **2 Challenges** (seit 07.10.; vorher 3). Die Foto-Challenge erzeugt eine **Instagram-Story mit Markierung @alfonsx_sigmaringen** – jede Story bringt die Bar in die Feeds der Freunde, das Team repostet die besten in die Bar-Story.
 - Wer **2/2** schafft, kommt in den **Lostopf**. Das Team lost **um 03:30** im Hintergrund aus, **um 04:00** läuft die **Live-Auslosung auf allen Handys** (Änderung 10.10.) (**13 Gewinne**: 5× Meet & Greet mit den Stars, 3× Special-Edition alfons-x-T-Shirt, 5× Getränk deiner Wahl).
 - Wunsch des Inhabers: **„Idiotensicher und einfach – so viel wie nötig, so wenig wie möglich, wir müssen an den letzten Deppen denken.“**
 
@@ -31,7 +31,8 @@ Dieses Dokument fasst Ziel, Verlauf, Entscheidungen (mit Begründung), den aktue
 | Prüfung Gewinner | Team sucht im **DM-Postfach der Bar** nach der Story-Erwähnung des gezogenen Handles; keine Story oder nicht anwesend → neu ziehen | einfach, kein Instagram-API-Zugriff nötig |
 | Ziehung | 03:30 im Admin „Jetzt auslosen“ (alle 13 auf einmal, mit Gewinn), Story-Prüfung bis 04:00; **04:00 Live-Show auf allen Handys** (Countdown-Karte vorher, Namen würfeln, 3 Runden: T-Shirt → Getränk → Finale Meet & Greet); Gewinner sieht „gewonnen.“ + Gewinn + Live-Code, Abholung **an der Bar** | Wunsch Inhaber 10.10.: kein DJ mehr; Server gibt Gewinner erst ab `reveal_at` heraus |
 | Gäste-Login | **ohne Passwort**, Gerät per zufälliger Kennung wiedererkannt; „Daten löschen & neu anmelden“ möglich | einfach + datensparsam |
-| Lageplan | gezeichneter **Beispiel-Innenplan** mit gelben Security-Strichmännchen am Eingang. Ein OSM-Umgebungsplan wurde gebaut und **auf Wunsch wieder entfernt** | User bevorzugt schlichten Plan; echter Plan kommt vom Inhaber |
+| Lageplan | **echter Plan nach Skizze des Inhabers** (15.10.), als SVG im Hochformat: Eingang/Kiosk → DB Halle → Durchgang → Alfons mit Bar, links Außenbereich; gelbe Security am Eingang, grüne Striche = Durchgänge | Hochformat passt aufs Handy, Beschriftungen waagerecht |
+| Spaßname | **wird zugelost** aus 1000 Namen (`app/fun-names.js`), vom Server, jeder nur 1× | freie Eingabe hätte Beleidigungen in Live-Vibes/Live-Auslosung erlaubt |
 | Hosting | **nicht GitHub Pages** für den Live-Betrieb (kommerziell, kein Monitoring) → **eigener VPS** | |
 | Backend | **Weg C umgesetzt** (freigegeben 07.10.): eigener Node-API-Container + **eigener Postgres-Container** `abfahrt-db` (nicht die vorhandene `postgres_prod` mit n8n/Cal.com), eigenes Compose-Projekt in `/root/abfahrt`; n8n wird nicht genutzt | Stack vorhanden (Traefik, Docker Compose); Event-Daten komplett getrennt und nach dem Event rückstandslos löschbar (`down -v`); kein US-Dienstleister |
 | Inhalte | **kein Alkohol-Bezug** in Texten/Beispielen | Kundenwunsch |
@@ -44,7 +45,7 @@ Live zum Testen (Demo, Daten nur im Browser): `https://semo428.github.io/Abfahrt
 
 **Navigation:** Tab-Leiste unten: **Mission · Ablauf · Lageplan · Regeln** (Ablauf/Lageplan/Regeln ohne Anmeldung nutzbar).
 
-**Mission (vor Anmeldung):** Gewinne-Laufband · Hero „abfahrt.“ · Hinweis-Karte „Zuallererst: Schau dir unsere Rules an“ (→ Regeln) · **Anmeldekarte** (Spaßname, Instagram, Häkchen Teilnahmebedingungen, „Los geht's“) · Gewinne-Kacheln · „So läuft's“ (3 Schritte) · Kleingedrucktes.
+**Mission (vor Anmeldung):** Gewinne-Laufband · Hero „abfahrt.“ · Hinweis-Karte „Zuallererst: Schau dir unsere Rules an“ (→ Regeln) · **Anmeldekarte** (Instagram, Häkchen Teilnahmebedingungen, „🎲 Spaßnamen ziehen“ → Namen rattern durch und rasten ein → „du bist dabei.“) · Gewinne-Kacheln · „So läuft's“ (3 Schritte) · Kleingedrucktes.
 
 **Nach Anmeldung (Dashboard):** Charakter-Karte (lokal generierter Text – **offen, ob raus**) · Fortschritt x/2 · 2 antippbare Challenges · Lostopf-Status · **Live-Vibes-Fenster** · Zähler „sind heute dabei“ · „Daten löschen & neu anmelden“.
 
@@ -70,7 +71,7 @@ Live zum Testen (Demo, Daten nur im Browser): `https://semo428.github.io/Abfahrt
 ```
 players
   id            uuid  PK            (bei Supabase = auth.users.id; bei Weg C: eigene UUID)
-  fun_name      text  2–24 Zeichen, eindeutig (case-insensitive)
+  fun_name      text  2–24 Zeichen, eindeutig (case-insensitive), vom Server aus app/fun-names.js vergeben
   ig_handle     text  ^[a-z0-9._]{1,30}$, ohne @, lowercase, eindeutig
   character     jsonb {title, superpower, weakness}   (optional – offen, ob entfällt)
   photo_at      timestamptz null   (Challenge 1 „Abfahrt-Foto“)
@@ -106,7 +107,7 @@ Das Frontend greift **nur** über `app/store.js` auf Daten zu. Der Live-Teil dor
 |---|---|---|
 | `init()` | – (Token aus localStorage lesen) | – |
 | `me()` | `GET /api/me` (Bearer-Token) | Player-Objekt oder `null` |
-| `register({fun_name, ig_handle})` | `POST /api/register` | `{ token, player }` → Token im localStorage speichern, `player` zurückgeben |
+| `register({ig_handle})` | `POST /api/register {ig_handle}` | `{ token, player }` – Server lost `player.fun_name` aus `app/fun-names.js` (nur freie Namen; `fun_name` im Body → `invalid_input`) |
 | `complete(key)` key = `photo` | `POST /api/challenge {key}` | aktualisiertes Player-Objekt |
 | `submitVibe(stars, text)` | `POST /api/vibe {stars, text}` | aktualisiertes Player-Objekt |
 | `stats()` | `GET /api/stats` (öffentlich) | `{ players, vibe_avg, vibe_count, recent:[{fun_name,stars,text}], sample:[{fun_name,stars,text}] }` – `sample` = **zufällig max. 7** Vibes; darf für ~60 s gecacht werden |
@@ -125,7 +126,7 @@ Das Frontend greift **nur** über `app/store.js` auf Daten zu. Der Live-Teil dor
 
 **Fehler:** JSON `{ "error": "<code>" }` mit passendem HTTP-Status. Codes, die das Frontend übersetzt (`friendly()` in store.js): `fun_name_unique`, `ig_handle_unique`, `blocked_text`, `not_admin`, `empty_pot`, `locked_after_draw`, `not_drawn`, `already_registered` (pro Gerät ein Eintrag), `not_registered` (Token unbekannt → store.js meldet `null`), `rate_limited`, `invalid_input`, `server_error`. Validierungsfehler (Länge/Format) prüft das Frontend zusätzlich selbst.
 
-**Eingabe-Validierung (serverseitig wiederholen!):** fun_name trim, 2–24 · ig_handle: `@` entfernen, lowercase, `^[a-z0-9._]{1,30}$` · stars 1–5 · text trim, 2–80, Wortfilter · key = photo.
+**Eingabe-Validierung (serverseitig wiederholen!):** fun_name wird nicht angenommen (Server vergibt) · ig_handle: `@` entfernen, lowercase, `^[a-z0-9._]{1,30}$` · stars 1–5 · text trim, 2–80, Wortfilter · key = photo.
 
 **Frontend-Details:** Offline-Puffer `ab_pending` in localStorage (Challenge wird lokal vorgemerkt, falls die Seite beim Wechsel zu Instagram neu lädt; beim nächsten Start nachgesendet) – API muss **idempotent** sein (zweites Abhaken ändert nichts). Dashboard pollt `me()` + `stats()` alle 20 s, die Anmeldeseite `stats()` alle 60 s (wichtig für Last – `stats` serverseitig cachen, z. B. 30–60 s).
 
@@ -193,7 +194,7 @@ Gast-Handy ──HTTPS──▶ Traefik (TLS Let's Encrypt, Rate-Limit 1000/s pr
 
 **Inhalt / Kunde:**
 - [ ] Echter **Ablauf** (Zeiten, DJs, Acts, Ende) → `config.js` `schedule`, `scheduleIsExample:false`
-- [ ] Echter **Lageplan** (Bild) → `config.js` `mapImage`, `mapIsExample:false`; Position der Security
+- [x] Echter **Lageplan** (15.10., nach Skizze) – noch offen: genaue Position von Security, Toiletten, Notausgängen
 - [ ] `helpWhere` (wo gibt's Hilfe), `address` für „Route planen“
 - [x] **Gewinn-Zuordnung**: per Los beim Ziehen (prize), Show-Reihenfolge `revealOrder` in config.js
 - [ ] Abholung: bis wann können Gewinne an der Bar abgeholt werden? → Teilnahmebedingungen-Platzhalter

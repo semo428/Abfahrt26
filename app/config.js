@@ -33,7 +33,7 @@ window.ABFAHRT_CONFIG = {
   // ---------- Lageplan ----------
   // mapImage leer = gezeichneter Beispielplan. Später z. B. "lageplan.jpg" in den Ordner legen und hier eintragen.
   mapImage: "",
-  mapIsExample: true,
+  mapIsExample: false,   // gezeichneter Plan nach Skizze des Inhabers (15.10.)
   address: "alfons x, Sigmaringen",   // für den Button „Route planen“ (Google Maps öffnet sich nur per Klick)
 
   // ---------- Hilfe am Abend ----------
