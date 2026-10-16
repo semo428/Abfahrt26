@@ -7,6 +7,7 @@ const { Limiter } = require('../ratelimit');
 const { newToken, hashToken, bearer } = require('../auth');
 const v = require('../validate');
 const { PLAYER_COLS: COLS, revealed, mask } = require('../game');
+const FUN_NAMES = require('../fun-names');
 const STATS_SQL = `
   select json_build_object(
     'players',    (select count(*) from players)::int,
@@ -58,22 +59,35 @@ module.exports = async function(app){
   app.post('/api/register', async function(req, reply){
     if (!registerLimit.hit(req.ip)) throw new ApiError(429, 'rate_limited');
     const b = v.body(req);
-    const funName = v.funName(b.fun_name);
+    if (b.fun_name !== undefined) throw new ApiError(400, 'invalid_input');   // Spaßnamen vergibt nur der Server
     const ig = v.igHandle(b.ig_handle);
-    const character = v.character(b.character);
     const existing = bearer(req);
     if (existing){
       const r = await pool.query('select 1 from players where token_hash = $1', [hashToken(existing)]);
       if (r.rowCount) throw new ApiError(409, 'already_registered');   // pro Gerät nur ein Eintrag
     }
-    const token = newToken();
-    try{
-      const { rows } = await pool.query(
-        'insert into players (token_hash, fun_name, ig_handle, character) values ($1, $2, $3, $4) returning ' + COLS,
-        [hashToken(token), funName, ig, character]);
-      reply.code(201);
-      return { token, player: mask(rows[0]) };
-    }catch(e){ throw mapPgError(e); }
+    const token = newToken(), th = hashToken(token);
+    // Zufälliger freier Name aus der Liste (app/fun-names.js). Zwei gleichzeitige Anmeldungen können denselben
+    // Namen erwischen → Unique-Index schlägt an → neu versuchen. Liste leer → Name + Zahl (bleibt harmlos).
+    for (let attempt = 0; attempt < 8; attempt++){
+      try{
+        let { rows } = await pool.query(
+          'insert into players (token_hash, fun_name, ig_handle) ' +
+          'select $1, n, $3 from unnest($2::text[]) n where not exists (select 1 from players p where lower(p.fun_name) = lower(n)) ' +
+          'order by random() limit 1 returning ' + COLS, [th, FUN_NAMES, ig]);
+        if (!rows[0]){
+          const n = FUN_NAMES[Math.floor(Math.random() * FUN_NAMES.length)] + ' ' + (10 + Math.floor(Math.random() * 990));
+          ({ rows } = await pool.query('insert into players (token_hash, fun_name, ig_handle) values ($1, $2, $3) returning ' + COLS, [th, n, ig]));
+        }
+        reply.code(201);
+        return { token, player: mask(rows[0]) };
+      }catch(e){
+        const err = mapPgError(e);
+        if (err && err.code === 'fun_name_unique') continue;
+        throw err;
+      }
+    }
+    throw new ApiError(503, 'server_error');
   });
 
   // Gezogene sehen vor reveal_at nichts (Status/Gewinn/Code maskiert)

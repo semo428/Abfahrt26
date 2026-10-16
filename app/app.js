@@ -54,7 +54,7 @@
   function showError(id, msg){ var el = $('#' + id); if (el){ el.textContent = msg; el.hidden = false; } }
   function busy(btn, on, label){ if (!btn) return; btn.disabled = on; if (label) btn.textContent = label; }
   function charCard(p, small){
-    var c = p.character || {};
+    var c = p.character || S.localCharacter(p.fun_name);
     return '<div class="char' + (small ? ' small' : '') + '">' +
       '<span class="r">' + (small ? 'Dein Charakter · ' + esc(p.fun_name) : 'Dein Charakter für die Abfahrt') + '</span>' +
       '<span class="n">' + esc(c.title || p.fun_name) + '</span>' +
@@ -86,35 +86,57 @@
       '</section>' + foot());
   }
 
+  // Lageplan (nach Handskizze, ins Hochformat gedreht): oben Eingang/Kiosk, darunter DB Halle, Durchgang, Alfons;
+  // links durchgehend der Außenbereich. Maßstab: 20 Einheiten = 1 m, Ursprung 10/10.
   var MAP_POINTS = [
     ['Eingang & Security', 'Hier kommst du rein – und hier hilft dir die Security.'],
-    ['Garderobe', 'Jacke abgeben'],
+    ['Kiosk & Garderobe', 'Jacke abgeben, Snacks holen'],
+    ['DB Halle', 'Dancefloor + Piercing & Tattoo'],
+    ['Durchgang', 'Verbindet DB Halle und Alfons · Ausgang zum Außenbereich'],
+    ['Alfons', 'Dancefloor'],
     ['Bar', 'Getränke · hier holst du deinen Gewinn ab'],
-    ['Tanzfläche', 'Hier passiert’s'],
-    ['DJ-Pult', ''],
-    ['Toiletten', ''],
-    ['Lounge', 'Kurz durchschnaufen'],
-    ['Raucherbereich', 'Nur draußen – drinnen wird nicht geraucht']
+    ['Außenbereich', 'Food- & Getränketruck · Toiletten · Rauchen nur hier draußen']
   ];
   function mapSvg(){
     function guard(x, y){ return '<g transform="translate(' + x + ' ' + y + ')"><circle cx="0" cy="-11" r="3.6" fill="#FFD23F"/><path d="M0 -7 L0 3 M-5.5 -3 L5.5 -3 M0 3 L-4 11 M0 3 L4 11" stroke="#FFD23F" stroke-width="2.6" stroke-linecap="round" fill="none"/></g>'; }
     function pin(n, x, y){ return '<g class="pin"><circle cx="' + x + '" cy="' + y + '" r="13"/><text x="' + x + '" y="' + (y + 5) + '">' + n + '</text></g>'; }
-    return '<svg class="floorplan" viewBox="0 0 400 470" role="img" aria-label="Beispiel-Lageplan des Clubs mit 8 nummerierten Bereichen">' +
+    function rect(cls, x1, y1, x2, y2){ return '<rect class="' + cls + '" x="' + x1 + '" y="' + y1 + '" width="' + (x2 - x1) + '" height="' + (y2 - y1) + '"/>'; }
+    function line(cls, x1, y1, x2, y2){ return '<line class="' + cls + '" x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '"/>'; }
+    function text(cls, x, y, t){ return '<text class="' + cls + '" x="' + x + '" y="' + y + '">' + t + '</text>'; }
+    return '<svg class="floorplan" viewBox="0 0 460 900" role="img" aria-label="Lageplan: Eingang mit Kiosk und Garderobe, DB Halle, Durchgang, Alfons mit Bar, links der Außenbereich. 7 nummerierte Bereiche.">' +
       '<defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" class="hatch"/></pattern></defs>' +
-      '<rect x="14" y="14" width="300" height="400" rx="10" class="wall"/>' +
-      '<rect x="326" y="250" width="62" height="164" rx="8" class="outside"/>' +
-      '<text x="357" y="236" class="lbl small">draußen</text>' +
-      '<rect x="104" y="30" width="120" height="44" rx="6" class="zone strong"/><text x="164" y="58" class="lbl">DJ</text>' +
-      '<rect x="80" y="92" width="168" height="170" rx="8" class="zone dance"/><text x="164" y="182" class="lbl">Tanzfläche</text>' +
-      '<rect x="28" y="92" width="38" height="190" rx="6" class="zone"/><text x="47" y="190" class="lbl small" transform="rotate(-90 47 190)">Bar</text>' +
-      '<rect x="262" y="30" width="40" height="80" rx="6" class="zone"/><text x="282" y="76" class="lbl small">WC</text>' +
-      '<rect x="262" y="176" width="40" height="150" rx="6" class="zone"/><text x="282" y="268" class="lbl small" transform="rotate(-90 282 268)">Garderobe</text>' +
-      '<rect x="28" y="300" width="130" height="80" rx="6" class="zone"/><text x="93" y="345" class="lbl small">Lounge</text>' +
-      '<rect x="190" y="404" width="70" height="20" class="door"/><text x="225" y="452" class="lbl">Eingang</text>' +
-      '<rect x="306" y="320" width="20" height="44" class="door"/>' +
-      '<text x="22" y="30" class="exit">EXIT</text><text x="286" y="408" class="exit">EXIT</text>' +
-      guard(192, 394) + guard(258, 394) +
-      pin(1, 225, 390) + pin(2, 282, 194) + pin(3, 47, 112) + pin(4, 120, 112) + pin(5, 214, 44) + pin(6, 282, 46) + pin(7, 48, 318) + pin(8, 357, 270) +
+      // Außenbereich (links, über die ganze Länge von DB Halle bis Alfons)
+      rect('outside', 10, 190, 150, 890) +
+      // Gebäude
+      rect('bld', 150, 10, 246, 190) +          // Kiosk & Eingang
+      rect('bld', 150, 190, 450, 390) +         // DB Halle
+      rect('bld', 150, 390, 226, 502) +         // Durchgang
+      rect('bld', 150, 502, 418, 890) +         // Alfons
+      rect('zone dance', 160, 200, 440, 380) +  // Dancefloor DB Halle
+      rect('zone dance', 234, 512, 408, 880) +  // Dancefloor Alfons
+      // Trennwand im Alfons mit zwei Durchgängen
+      line('part', 224, 502, 224, 544) + line('part', 224, 574, 224, 780) + line('part', 224, 812, 224, 890) +
+      line('door', 224, 544, 224, 574) + line('door', 224, 780, 224, 812) +
+      rect('zone strong', 178, 586, 210, 778) + // Bar
+      // Türen / Durchgänge
+      line('door', 150, 60, 150, 140) +         // Eingang (4 m)
+      line('door', 158, 190, 218, 190) +        // Kiosk → DB Halle
+      line('door', 162, 390, 206, 390) +        // DB Halle → Durchgang
+      line('door', 162, 502, 206, 502) +        // Durchgang → Alfons
+      line('door', 150, 416, 150, 476) +        // Durchgang → Außenbereich
+      // Eingangspfeil von der Straße
+      line('arrow', 44, 100, 132, 100) + '<path class="arrowhead" d="M144 100 L130 92 L130 108 Z"/>' +
+      text('lbl', 88, 82, 'Eingang') + text('lbl tiny', 88, 126, '4 m breit') +
+      // Beschriftungen
+      text('lbl', 198, 96, 'Kiosk') + text('lbl tiny', 198, 116, 'Garderobe') +
+      text('lbl eyebrow', 300, 262, 'DB HALLE') + text('lbl big', 300, 294, 'Dancefloor') + text('lbl tiny', 300, 318, '+ Piercing &amp; Tattoo') +
+      text('lbl start', 238, 442, 'Durchgang') + text('lbl tiny start', 238, 462, 'Ausgang Außenbereich') +
+      text('lbl eyebrow', 321, 650, 'ALFONS') + text('lbl big', 321, 682, 'Dancefloor') +
+      text('lbl small', 194, 687, 'Bar') +
+      text('lbl', 80, 520, 'Außen-') + text('lbl', 80, 540, 'bereich') +
+      text('lbl tiny', 80, 568, 'Food-Truck') + text('lbl tiny', 80, 586, 'Getränke-') + text('lbl tiny', 80, 602, 'Truck') + text('lbl tiny', 80, 624, 'Toiletten') +
+      guard(166, 52) + guard(166, 160) +
+      pin(1, 26, 100) + pin(2, 226, 32) + pin(3, 424, 214) + pin(4, 188, 446) + pin(5, 390, 528) + pin(6, 194, 562) + pin(7, 80, 216) +
       '</svg>';
   }
   function viewMap(){
@@ -128,7 +150,7 @@
       '<div class="map-wrap">' + img + '</div>' +
       '<ol class="legend">' + legend + '</ol>' +
       '<p class="muted guard-note"><svg viewBox="-8 -16 16 30" aria-hidden="true"><circle cx="0" cy="-11" r="3.6" fill="#FFD23F"/><path d="M0 -7 L0 3 M-5.5 -3 L5.5 -3 M0 3 L-4 11 M0 3 L4 11" stroke="#FFD23F" stroke-width="2.6" stroke-linecap="round" fill="none"/></svg><span><b style="color:#FFD23F">Gelbe Figuren</b> = Security. Dort bekommst du Hilfe.</span></p>' +
-      '<p class="muted"><b style="color:var(--ok)">EXIT</b> = Notausgang. Im Notfall den grünen Schildern folgen.</p>' +
+      '<p class="muted guard-note"><svg viewBox="0 0 16 30" aria-hidden="true"><line x1="8" y1="2" x2="8" y2="28" stroke="var(--ok)" stroke-width="5"/></svg><span><b style="color:var(--ok)">Grüne Striche</b> = Durchgang bzw. Ausgang. Schematischer Plan, Maße gerundet.</span></p>' +
       '</section>' + foot());
   }
 
@@ -238,11 +260,11 @@
         rulesCard() +
         '<form id="reg" class="reg-card" novalidate>' +
           '<div><span class="eyebrow">Mitmachen &amp; gewinnen</span><h1 class="reg-title">ticket lösen.</h1></div>' +
-          '<div class="field"><label for="fn">Dein Spaßname</label><input class="input" id="fn" name="fn" maxlength="24" autocomplete="off" placeholder="z. B. Nachtfalke" required><small>Nicht dein echter Name – so erscheinst du bei der Live-Auslosung.</small></div>' +
           '<div class="field"><label for="ig">Dein Instagram</label><div class="input-at"><span>@</span><input class="input" id="ig" name="ig" maxlength="30" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="deinname" required value="' + esc(prefill) + '"></div><small>Damit finden wir bei der Ziehung deine Story.</small></div>' +
           '<label class="check" for="ok"><input type="checkbox" id="ok" required><span>Ich akzeptiere die <a href="teilnahmebedingungen.html" target="_blank" rel="noopener">Teilnahmebedingungen</a>.</span></label>' +
+          '<p class="name-hint"><span aria-hidden="true">🎲</span><span>Deinen <b>Spaßnamen</b> ziehst du gleich per Los – unter diesem Namen erscheinst du bei den Live-Vibes und der Live-Auslosung.</span></p>' +
           errorBox('reg-err') +
-          '<button class="btn red" id="reg-btn" type="submit">Los geht’s</button>' +
+          '<button class="btn red" id="reg-btn" type="submit">🎲 Spaßnamen ziehen</button>' +
           '<div class="counter" id="counter" hidden><span class="n" id="count">0</span><span>sind schon dabei</span></div>' +
         '</form>' +
         drawCard() +
@@ -251,7 +273,7 @@
         '<div class="sec"><span>Das kannst du gewinnen</span></div>' +
         prizeGrid() +
         '<div class="sec"><span>So läuft’s</span></div>' +
-        '<ol class="steps"><li><b>Anmelden</b><span>Spaßname + Instagram – dauert 20 Sekunden.</span></li>' +
+        '<ol class="steps"><li><b>Anmelden</b><span>Instagram eintragen, Spaßnamen ziehen – dauert 20 Sekunden.</span></li>' +
         '<li><b>2 Challenges machen</b><span>Foto als Story &amp; Vibe-Check – alles hier in der App.</span></li>' +
         '<li><b>Um ' + esc(C.revealTime) + ' Uhr gewinnen</b><span>Live-Auslosung auf deinem Handy. Gewinne holst du an der Bar ab.</span></li></ol>' +
         '<p class="fineprint">Wir speichern nur Spaßname, Instagram-Name und deine erledigten Challenges. Fotos bleiben auf deinem Handy. Dein Spaßname und dein Vibe sind für andere sichtbar. Mehr im <a href="datenschutz.html">Datenschutzhinweis</a>.</p>' +
@@ -261,24 +283,40 @@
       ev.preventDefault();
       var btn = $('#reg-btn'), err = $('#reg-err'); err.hidden = true;
       if (!$('#ok').checked) return showError('reg-err', 'Bitte bestätige die Teilnahmebedingungen.');
-      var fn = $('#fn').value;
-      if (BLOCK.test(fn)) return showError('reg-err', 'Such dir bitte einen anderen Spaßnamen aus.');
-      busy(btn, true, 'Dein Charakter wird erstellt …');
+      busy(btn, true, 'Wird gezogen …');
       try{
-        me = await S.register({ fun_name: fn, ig_handle: $('#ig').value });
+        me = await S.register({ ig_handle: $('#ig').value });
         try{ sessionStorage.removeItem('ab_u'); }catch(e){}
-        viewCharacter();
-      }catch(e){ showError('reg-err', e.message); busy(btn, false, 'Los geht’s'); }
+        viewCharacter(true);
+      }catch(e){ showError('reg-err', e.message); busy(btn, false, '🎲 Spaßnamen ziehen'); }
     });
   }
 
-  function viewCharacter(){
+  // Nach der Anmeldung: Spaßname wird „ausgelost“ (Namen rattern durch, werden langsamer, rasten ein)
+  function viewCharacter(roll){
     var next = peekStation();
     render(top() + '<section class="view">' +
-      '<span class="eyebrow">Ticket gelöst ✓</span><h1>du bist dabei.</h1>' + charCard(me, false) +
-      '<button class="btn red" id="go">' + (next ? 'Weiter zur Challenge' : 'Zu deiner Mission') + '</button>' +
+      '<span class="eyebrow">Ticket gelöst ✓</span>' +
+      '<div class="name-roll" id="roll"><small>Dein Spaßname für heute Nacht</small><b id="roll-name">' + esc(me.fun_name) + '</b></div>' +
+      '<div id="after" class="after-roll"' + (roll ? ' hidden' : '') + '><h1>du bist dabei.</h1><p class="lede">Unter diesem Namen erscheinst du heute Nacht bei den Live-Vibes und der Live-Auslosung.</p>' +
+      '<button class="btn red" id="go">' + (next ? 'Weiter zur Challenge' : 'Zu deiner Mission') + '</button></div>' +
       '</section>' + foot());
     $('#go').onclick = route;
+    if (!roll) return;
+    var names = window.ABFAHRT_NAMES || [], el = $('#roll-name'), box = $('#roll'), delay = 55;
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    box.classList.add('rolling');
+    (function step(){
+      if (!$('#roll')) return;
+      if (delay > 320 || reduce || !names.length){
+        el.textContent = me.fun_name; box.classList.remove('rolling'); box.classList.add('locked');
+        try{ navigator.vibrate && navigator.vibrate(120); }catch(e){}
+        $('#after').hidden = false; return;
+      }
+      el.textContent = names[Math.floor(Math.random() * names.length)];
+      delay = Math.round(delay * 1.09);
+      setTimeout(step, delay);
+    })();
   }
 
   // ---------- Dashboard ----------

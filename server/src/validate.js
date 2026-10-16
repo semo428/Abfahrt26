@@ -86,4 +86,4 @@ function password(v){
   return v;
 }
 
-module.exports = { body, funName, igHandle, character, stars, vibeText, challengeKey, uuid, email, password };
+module.exports = { BLOCK, body, funName, igHandle, character, stars, vibeText, challengeKey, uuid, email, password };

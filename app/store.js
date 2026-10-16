@@ -48,10 +48,9 @@
   }
 
   function normHandle(h){ return (h || '').trim().replace(/^@+/, '').toLowerCase(); }
+  // Spaßnamen werden nicht mehr selbst eingegeben, sondern aus app/fun-names.js zugelost (live: vom Server)
   function validate(d){
-    var fn = (d.fun_name || '').trim();
     var ig = normHandle(d.ig_handle);
-    if (fn.length < 2 || fn.length > 24) return 'Dein Spaßname braucht 2 bis 24 Zeichen.';
     if (!/^[a-z0-9._]{1,30}$/.test(ig)) return 'Bitte gib einen gültigen Instagram-Namen ein (nur Buchstaben, Zahlen, Punkt, Unterstrich).';
     return null;
   }
@@ -72,10 +71,12 @@
     register: function(d){
       var err = validate(d); if (err) return Promise.reject(new Error(err));
       var players = lsGet('ab_players', []);
-      var fn = d.fun_name.trim(), ig = normHandle(d.ig_handle);
-      if (players.some(function(p){ return p.fun_name.toLowerCase() === fn.toLowerCase(); })) return Promise.reject(new Error('Diesen Spaßnamen gibt es schon. Nimm einen anderen.'));
+      var ig = normHandle(d.ig_handle);
       if (players.some(function(p){ return p.ig_handle === ig; })) return Promise.reject(new Error('Mit diesem Instagram-Namen ist schon jemand angemeldet.'));
-      var p = { id: uuid(), fun_name: fn, ig_handle: ig, character: localCharacter(fn, d.song, d.move), photo_at: null, vibe_at: null, status: 'active', prize: null, win_code: null, created_at: new Date().toISOString() };
+      var used = {}; players.forEach(function(p){ used[p.fun_name.toLowerCase()] = 1; });
+      var all = window.ABFAHRT_NAMES || [], free = all.filter(function(n){ return !used[n.toLowerCase()]; });
+      var fn = free.length ? free[Math.floor(Math.random() * free.length)] : all[Math.floor(Math.random() * all.length)] + ' ' + (10 + Math.floor(Math.random() * 990));
+      var p = { id: uuid(), fun_name: fn, ig_handle: ig, character: localCharacter(fn), photo_at: null, vibe_at: null, status: 'active', prize: null, win_code: null, created_at: new Date().toISOString() };
       players.push(p); lsSet('ab_players', players); lsSet('ab_me', p.id);
       return Promise.resolve(p);
     },
@@ -217,8 +218,7 @@
     },
     register: async function(d){
       var err = validate(d); if (err) throw new Error(err);
-      var fn = d.fun_name.trim();
-      var r = await api('POST', '/register', { fun_name: fn, ig_handle: normHandle(d.ig_handle), character: localCharacter(fn, d.song, d.move) });
+      var r = await api('POST', '/register', { ig_handle: normHandle(d.ig_handle) });
       setToken(r.token);
       return r.player;
     },
@@ -243,4 +243,5 @@
   window.AbfahrtStore.isDemo = DEMO;
   window.AbfahrtStore.normHandle = normHandle;
   window.AbfahrtStore.eventTime = eventTime;
+  window.AbfahrtStore.localCharacter = localCharacter;
 })();

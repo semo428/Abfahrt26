@@ -10,6 +10,7 @@ const API_REVEALED = process.env.API_REVEALED || API;
 const ORIGIN = process.env.PUBLIC_ORIGIN;
 const ADMIN = { email: process.env.ADMIN_1_EMAIL, password: process.env.ADMIN_1_PASSWORD };
 const RUN = Date.now().toString(36);
+const FUN_NAMES = require('../src/fun-names');
 let seq = 0;
 
 async function call(method, path, { body, token, cookie, origin = ORIGIN, headers = {}, base = API } = {}){
@@ -23,7 +24,7 @@ async function call(method, path, { body, token, cookie, origin = ORIGIN, header
   let json = null; try{ json = JSON.parse(text); }catch(_){}
   return { status: r.status, json, text, headers: r.headers };
 }
-function uniq(){ seq++; return { fun_name: 'Tester ' + RUN + seq, ig_handle: 't_' + RUN + '_' + seq }; }
+function uniq(){ seq++; return { ig_handle: 't_' + RUN + '_' + seq }; }
 async function register(extra = {}){
   const r = await call('POST', '/api/register', { body: { ...uniq(), ...extra } });
   assert.equal(r.status, 201, r.text);
@@ -138,7 +139,7 @@ test('Admin: alle auslosen, maskiert bis reveal_at, bestätigen, ablehnen mit Er
   for (const id of [w2.id, sub.id, w3.id]){
     assert.equal((await call('DELETE', '/api/me', { token: byId[id].token, base: API_REVEALED })).json.error, 'locked_after_draw');
   }
-  assert.equal((await call('POST', '/api/register', { body: { fun_name: 'Neu ' + RUN, ig_handle: byId[w2.id].player.ig_handle } })).json.error, 'ig_handle_unique');
+  assert.equal((await call('POST', '/api/register', { body: { ig_handle: byId[w2.id].player.ig_handle } })).json.error, 'ig_handle_unique');
   // Vor reveal_at darf auch ein Gezogener löschen (sonst verriete die Sperre den Gewinn)
   assert.equal((await call('DELETE', '/api/me', { token: byId[w3.id].token })).status, 204);
   assert.equal((await call('GET', '/api/admin/overview', { cookie })).json.winners.length, 1);
@@ -147,27 +148,29 @@ test('Admin: alle auslosen, maskiert bis reveal_at, bestätigen, ablehnen mit Er
   assert.deepEqual((await call('GET', '/api/admin/session', { cookie })).json, { admin: false });
 });
 
-test('Anmeldung: Validierung, Eindeutigkeit, ein Eintrag pro Gerät', async () => {
-  assert.equal((await call('POST', '/api/register', { body: { fun_name: 'x', ig_handle: 'abc' } })).json.error, 'invalid_input');
-  assert.equal((await call('POST', '/api/register', { body: { fun_name: 'Gültig', ig_handle: 'nö!' } })).json.error, 'invalid_input');
-  assert.equal((await call('POST', '/api/register', { body: { fun_name: 'du nazi', ig_handle: 'abc' } })).json.error, 'blocked_text');
+test('Anmeldung: Spaßname vom Server, Validierung, Eindeutigkeit, ein Eintrag pro Gerät', async () => {
+  // Eigene Spaßnamen sind nicht mehr erlaubt – auch keine harmlosen
+  assert.equal((await call('POST', '/api/register', { body: { fun_name: 'Gültig', ig_handle: 'abc' } })).json.error, 'invalid_input');
+  assert.equal((await call('POST', '/api/register', { body: { fun_name: 'du nazi', ig_handle: 'abc' } })).json.error, 'invalid_input');
+  assert.equal((await call('POST', '/api/register', { body: { ig_handle: 'nö!' } })).json.error, 'invalid_input');
   assert.equal((await call('POST', '/api/register', { body: 'kein json', headers: { 'content-type': 'text/plain' } })).status, 400);
 
   const u = uniq();
-  const r = await call('POST', '/api/register', { body: { fun_name: '  ' + u.fun_name + ' ', ig_handle: '@' + u.ig_handle.toUpperCase(), character: { title: 't', superpower: 's', weakness: 'w', extra: 'x' } } });
+  const r = await call('POST', '/api/register', { body: { ig_handle: '@' + u.ig_handle.toUpperCase() } });
   assert.equal(r.status, 201);
   assert.match(r.json.token, /^[A-Za-z0-9_-]{43}$/);
   const p = r.json.player;
-  assert.equal(p.fun_name, u.fun_name); assert.equal(p.ig_handle, u.ig_handle); assert.equal(p.status, 'active');
-  assert.deepEqual(p.character, { title: 't', superpower: 's', weakness: 'w' });
+  assert.ok(FUN_NAMES.includes(p.fun_name), 'Name stammt aus der Liste: ' + p.fun_name);
+  assert.equal(p.ig_handle, u.ig_handle); assert.equal(p.status, 'active'); assert.equal(p.character, null);
   assert.deepEqual(Object.keys(p).sort(), ['character', 'created_at', 'fun_name', 'id', 'ig_handle', 'photo_at', 'prize', 'status', 'vibe_at', 'win_code']);
 
-  assert.equal((await call('POST', '/api/register', { body: { fun_name: u.fun_name.toUpperCase(), ig_handle: 'anders_' + RUN } })).json.error, 'fun_name_unique');
-  assert.equal((await call('POST', '/api/register', { body: { fun_name: 'Anders ' + RUN, ig_handle: u.ig_handle } })).json.error, 'ig_handle_unique');
+  assert.equal((await call('POST', '/api/register', { body: { ig_handle: u.ig_handle } })).json.error, 'ig_handle_unique');
   assert.equal((await call('POST', '/api/register', { token: r.json.token, body: uniq() })).json.error, 'already_registered');
 
-  const noChar = await register({ character: null });
-  assert.equal(noChar.player.character, null);
+  // Gleichzeitige Anmeldungen bekommen trotzdem lauter verschiedene Namen
+  const many = await Promise.all(Array.from({ length: 25 }, () => register()));
+  const names = many.map(m => m.player.fun_name.toLowerCase()).concat(p.fun_name.toLowerCase());
+  assert.equal(new Set(names).size, names.length, 'kein Spaßname doppelt');
 });
 
 test('me, Foto-Challenge idempotent, Vibe mit Filter und Limits, Statistik', async () => {
