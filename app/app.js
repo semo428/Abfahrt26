@@ -229,7 +229,7 @@
   }
 
   // ---------- Navigation (Tab-Leiste unten) ----------
-  var TABS = ['mission', 'timetable', 'events', 'plan', 'regeln'];
+  var TABS = ['mission', 'timetable', 'plan', 'regeln', 'events'];
   var ready = false;
   function currentTab(){ var t = location.hash.replace('#', ''); return TABS.indexOf(t) >= 0 ? t : 'mission'; }
   function setTab(t){

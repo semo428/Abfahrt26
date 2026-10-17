@@ -148,6 +148,19 @@ test('Admin: alle auslosen, maskiert bis reveal_at, bestätigen, ablehnen mit Er
   assert.deepEqual((await call('GET', '/api/admin/session', { cookie })).json, { admin: false });
 });
 
+test('feste Live-Vibes: Namen können nie an einen Gast vergeben werden', () => {
+  const fs = require('fs'), path = require('path'), vm = require('vm');
+  const sandbox = { window: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(require('../src/config').staticRoot, 'config.js'), 'utf8'), sandbox);
+  const vibes = sandbox.window.ABFAHRT_CONFIG.vibes;
+  assert.equal(vibes.length, 20);
+  const taken = new Set(FUN_NAMES.map(n => n.toLowerCase()));
+  for (const v of vibes){
+    // Server vergibt nur Namen aus der Liste oder (Liste erschöpft) „Listenname + Zahl“
+    assert.ok(!taken.has(v.name.toLowerCase()) && !taken.has(v.name.replace(/\s+\d+$/, '').toLowerCase()), 'Vibe-Name steht in fun-names.js: ' + v.name);
+  }
+});
+
 test('Anmeldung: Spaßname vom Server, Validierung, Eindeutigkeit, ein Eintrag pro Gerät', async () => {
   // Eigene Spaßnamen sind nicht mehr erlaubt – auch keine harmlosen
   assert.equal((await call('POST', '/api/register', { body: { fun_name: 'Gültig', ig_handle: 'abc' } })).json.error, 'invalid_input');

@@ -4,9 +4,9 @@ Webapp + Gewinnspiel für die Party „Abfahrt“ im Club/Bar **alfons x** (Bahn
 Auftraggeber: Inhaber alfons x. Umsetzung: ASK Connect (Projektleitung + Kollege fürs Backend – beide sollen auf **demselben Stand** sein).
 
 ## Zuletzt geändert (17.10.2026) – bitte zuerst lesen
-1. **Tabs:** Gewinnspiel (Hash bleibt `#mission`) · **Timetable** (echtes Line-up, `config.js` → `timetable`) · **Events** (neu, `config.js` → `events`) · Lageplan · Regeln.
+1. **Tabs:** Gewinnspiel (Hash bleibt `#mission`) · **Timetable** (echtes Line-up, `config.js` → `timetable`) · Lageplan · Regeln · **Events** (neu, `config.js` → `events`).
 2. **Neuer Lageplan** (Plan des Inhabers): Bunker, Foodtruck, Außenbar, WC innen/außen, Chill-Area, 10 Security-Posten, One Way; „Gut zu wissen“ mit Verzehrkarte am Kiosk.
-3. **Vibes nicht mehr öffentlich:** Live-Vibes = 20 feste Texte (`config.js` → `vibes`); Vibe-Check wird nur gespeichert (für einen späteren Post), kein Story-Teilen mehr. **API:** `GET /api/stats` liefert nur noch `{ players, vibe_avg, vibe_count }`.
+3. **Vibes nicht mehr öffentlich:** Live-Vibes = 20 feste Texte (`config.js` → `vibes`, bewusst mit ein paar Tippfehlern; Namen dürfen nicht in `fun-names.js` stehen – prüft ein Server-Test); Vibe-Check wird nur gespeichert (für einen späteren Post), kein Story-Teilen mehr. **API:** `GET /api/stats` liefert nur noch `{ players, vibe_avg, vibe_count }`.
 
 ## Davor (15.10.2026)
 Branch `feature/lageplan-spassnamen`:

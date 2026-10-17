@@ -43,7 +43,7 @@ Dieses Dokument fasst Ziel, Verlauf, Entscheidungen (mit Begründung), den aktue
 
 Live zum Testen (Demo, Daten nur im Browser): `https://semo428.github.io/Abfahrt26/app/` · Team: `…/app/admin.html`
 
-**Navigation:** Tab-Leiste unten: **Gewinnspiel · Timetable · Events · Lageplan · Regeln** (seit 17.10.; alles außer Gewinnspiel ohne Anmeldung nutzbar). Interne Hashes: `#mission` (Gewinnspiel, bleibt für QR-Links), `#timetable`, `#events`, `#plan`, `#regeln`.
+**Navigation:** Tab-Leiste unten: **Gewinnspiel · Timetable · Lageplan · Regeln · Events** (seit 17.10.; Events-Icon = Kalender mit X; alles außer Gewinnspiel ohne Anmeldung nutzbar). Interne Hashes: `#mission` (Gewinnspiel, bleibt für QR-Links), `#timetable`, `#events`, `#plan`, `#regeln`.
 
 **Mission (vor Anmeldung):** Gewinne-Laufband · Hero „abfahrt.“ · Hinweis-Karte „Zuallererst: Schau dir unsere Rules an“ (→ Regeln) · **Anmeldekarte** (Instagram, Häkchen Teilnahmebedingungen, „🎲 Spaßnamen ziehen“ → Namen rattern durch und rasten ein → „du bist dabei.“) · Gewinne-Kacheln · „So läuft's“ (3 Schritte) · Kleingedrucktes.
 
