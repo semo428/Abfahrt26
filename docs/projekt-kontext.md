@@ -43,24 +43,24 @@ Dieses Dokument fasst Ziel, Verlauf, Entscheidungen (mit Begründung), den aktue
 
 Live zum Testen (Demo, Daten nur im Browser): `https://semo428.github.io/Abfahrt26/app/` · Team: `…/app/admin.html`
 
-**Navigation:** Tab-Leiste unten: **Mission · Ablauf · Lageplan · Regeln** (Ablauf/Lageplan/Regeln ohne Anmeldung nutzbar).
+**Navigation:** Tab-Leiste unten: **Gewinnspiel · Timetable · Lageplan · Regeln · Events** (seit 17.10.; Events-Icon = Kalender mit X; alles außer Gewinnspiel ohne Anmeldung nutzbar). Interne Hashes: `#mission` (Gewinnspiel, bleibt für QR-Links), `#timetable`, `#events`, `#plan`, `#regeln`.
 
 **Mission (vor Anmeldung):** Gewinne-Laufband · Hero „abfahrt.“ · Hinweis-Karte „Zuallererst: Schau dir unsere Rules an“ (→ Regeln) · **Anmeldekarte** (Instagram, Häkchen Teilnahmebedingungen, „🎲 Spaßnamen ziehen“ → Namen rattern durch und rasten ein → „du bist dabei.“) · Gewinne-Kacheln · „So läuft's“ (3 Schritte) · Kleingedrucktes.
 
 **Nach Anmeldung (Dashboard):** Charakter-Karte (lokal generierter Text – **offen, ob raus**) · Fortschritt x/2 · 2 antippbare Challenges · Lostopf-Status · **Live-Vibes-Fenster** · Zähler „sind heute dabei“ · „Daten löschen & neu anmelden“.
 
-**Live-Vibes-Fenster** (Anmeldeseite + Dashboard, seit 07.10.): kleine Karte „Live-Vibes Ø★ · Anzahl“ mit wischbarer Leiste von **max. 7 zufälligen Vibes** anderer Gäste (★, Satz, — Spaßname); bei <7 Vibes entsprechend weniger, bei 0 ausgeblendet; neue Zufallsauswahl **höchstens 1× pro Minute**; läuft automatisch alle 4 s weiter (pausiert bei Berührung).
+**Live-Vibes-Fenster** (Anmeldeseite + Dashboard): seit 17.10. **nur noch 20 feste Vibes** aus `config.js` → `vibes` (★, Satz, — erfundener Name, nicht aus der Spaßnamen-Liste), zufällig gemischt, läuft alle 4 s weiter (pausiert bei Berührung). Daneben echter Ø★ und Anzahl aus `stats()`. **Echte Vibes der Gäste werden gespeichert, aber nirgends öffentlich gezeigt** (Schutz vor Beleidigungen) – das Team kann sie nach dem Event für einen Post „Das waren eure Meinungen“ nutzen (Export siehe §6).
 
 **Challenges:**
 1. **Abfahrt-Foto** (Key `photo`) – „Poste ein Bild von dir während der Abfahrt – gerne auch mit deiner Crew“ (Frontkamera) → Rahmen „CHALLENGE 1 · ABFAHRT-FOTO“ → „In Story teilen“ (= erledigt) → in Instagram @-Sticker aufs Feld.
-2. **Vibe-Check** – 1–5 Sterne + Satz (max. 80 Zeichen, Wortfilter) → zählt zur Live-Stimmung; optional Vibe-Karte als Story.
+2. **Vibe-Check** – 1–5 Sterne + Satz (max. 80 Zeichen, Wortfilter) → wird nur gespeichert, **kein Posten** mehr (Vibe-Karte als Story seit 17.10. entfernt).
 ~~3. Best Pose~~ – **gestrichen** (07.10., Wunsch Inhaber).
 
 **Gewonnen-Screen:** „gewonnen.“, Gewinn (Icon + Titel), „Komm jetzt zur Bar und hol deinen Gewinn ab“, Gewinncode + laufende Uhrzeit, „Auslosung nochmal ansehen“.
 
 **Admin (`admin.html`):** Login · Kacheln (Im Lostopf 2/2, Angemeldet, Abfahrt-Foto, Vibe-Check, Gewinner x/13) · „Auslosen“ → Spaßname + @handle (Link zu Instagram) → „✓ Story gefunden“ (zeigt Gewinncode) oder „↻ Keine Story – neu ziehen“ · Liste bestätigter Gewinner.
 
-**Ablauf/Lageplan/Regeln:** Inhalte in `app/config.js` (Ablauf + Lageplan sind **BEISPIEL**-Daten). Regeln basieren auf den Postern des Inhabers („X rules“ + „Zero Tolerance“), inkl. Hilfe-Box „sag sofort bescheid“.
+**Timetable/Events/Lageplan/Regeln:** Inhalte in `app/config.js`. **Timetable** (17.10., echt): X Floor (Alfons), Bunker Floor, DB Floor (DB Halle) mit „läuft gerade“. **Events:** nächste alfons-x-Termine (`events`, vergangene werden ausgeblendet; `featured` = große Karte): Abfahrt 24.04.2027 (60. Event, Jubiläum), Heiligabend, Silvester – Texte sind Vorschläge. **Lageplan** (17.10., nach Plan des Inhabers, Hochformat): Kiosk & Eingang (Verzehrkarte, One Way), DB Halle (DB Floor + Piercing & Tattoo), Durchgang, Alfons (X Floor, Chill-Area, Bar, WC innen), Außenbereich (Bunker, Foodtruck, Außenbar, WC außen), 10 Security-Posten; darüber „Gut zu wissen“ (Verzehrkarte am Kiosk, EC/Kredit oder bar · Security überall, nicht zum Eingang nötig · One Way). Regeln basieren auf den Postern des Inhabers („X rules“ + „Zero Tolerance“), inkl. Hilfe-Box „sag sofort bescheid“.
 
 **Story-Rahmen (frame.js):** 1080×1920, Logo + „alfons x“, rotes Challenge-Badge, darunter Feld „@ hier alfons x markieren“, unten „abfahrt.“ + 24/10/2026, roter Rand. Geteilt via `navigator.share({files})`.
 
@@ -110,7 +110,7 @@ Das Frontend greift **nur** über `app/store.js` auf Daten zu. Der Live-Teil dor
 | `register({ig_handle})` | `POST /api/register {ig_handle}` | `{ token, player }` – Server lost `player.fun_name` aus `app/fun-names.js` (nur freie Namen; `fun_name` im Body → `invalid_input`) |
 | `complete(key)` key = `photo` | `POST /api/challenge {key}` | aktualisiertes Player-Objekt |
 | `submitVibe(stars, text)` | `POST /api/vibe {stars, text}` | aktualisiertes Player-Objekt |
-| `stats()` | `GET /api/stats` (öffentlich) | `{ players, vibe_avg, vibe_count, recent:[{fun_name,stars,text}], sample:[{fun_name,stars,text}] }` – `sample` = **zufällig max. 7** Vibes; darf für ~60 s gecacht werden |
+| `stats()` | `GET /api/stats` (öffentlich) | `{ players, vibe_avg, vibe_count }` – **keine Vibe-Texte** (seit 17.10.); darf für ~60 s gecacht werden |
 | `deleteMe()` | `DELETE /api/me` | – (danach Token lokal löschen) |
 | `adminLogin(user, pw)` | `POST /api/admin/login` | – (Session-Cookie httpOnly/Secure/SameSite=Strict) |
 | `adminIsLoggedIn()` | `GET /api/admin/session` | `true/false` |
@@ -148,6 +148,7 @@ Gast-Handy ──HTTPS──▶ Traefik (TLS Let's Encrypt, Rate-Limit 1000/s pr
 - **Deploy** (kein GitHub-Zugang auf dem Server): `sh server/scripts/sync.sh` (rsync vom Mac) → auf dem VPS `cd /root/abfahrt && docker compose up -d --build`. Schema-Änderungen brauchen eine neue DB (`docker compose down -v`, löscht alle Spielerdaten).
 - **Tests:** `server/test/` laufen auf dem VPS im Wegwerf-Projekt `abfahrt-test` (zweite App-Instanz mit `REVEAL_AT` in der Vergangenheit, gleiche DB) → Befehle oben in `server/deploy/docker-compose.test.yml`. **Lasttest:** `node server/loadtest/loadtest.js` vom Mac (`REVEAL=1` simuliert den 04:00-Ansturm), danach `purge.sh --loadtest`.
 - **Skripte** (`server/scripts/`): `backup.sh` (pg_dump nach `/root/abfahrt/backups`), `purge.sh` (alle Spielerdaten löschen, mit Bestätigung), `gen-env.sh`, `sync.sh`.
+- **Vibes exportieren** (für einen Post, **vor** `purge.sh`, ohne Namen/Handles): `docker exec abfahrt-db psql -U abfahrt_owner -d abfahrt -c "\copy (select stars, text, created_at from vibes order by created_at) to stdout csv header" > vibes.csv`
 - **Warum nicht n8n als öffentliche API:** größere Angriffsfläche (n8n müsste öffentlich erreichbar sein), n8n **speichert Ausführungen inkl. Payload** (personenbezogene Daten in der n8n-DB), schlechter unter Lastspitzen.
 
 ---
@@ -171,7 +172,7 @@ Gast-Handy ──HTTPS──▶ Traefik (TLS Let's Encrypt, Rate-Limit 1000/s pr
 ## 8. Datenschutz (Stand)
 
 - Verantwortlicher: alfons x; ASK Connect = Auftragsverarbeiter (**AVV** nötig).
-- Für andere sichtbar: **Spaßname + Vibe** (Live-Vibes); Instagram-Handle nur fürs Team.
+- Für andere sichtbar: nur **Spaßname bei Gewinn** (Live-Auslosung); Vibes nicht öffentlich (können ohne Namen in einem alfons-x-Post zitiert werden, steht in Teilnahmebedingungen + Datenschutz); Instagram-Handle nur fürs Team.
 - Gespeichert: Spaßname, Instagram-Handle, erledigte Challenges, Vibe (Sterne + Satz), Status/Gewinncode, zufällige Geräte-Kennung im Browser (technisch notwendig, § 25 Abs. 2 TDDDG, kein Cookie-Banner).
 - **Keine Fotos, keine KI**, Daten in der EU (Hostinger, Frankfurt; **AVV mit Hostinger** klärt die Projektleitung), Löschung nach der Verlosung.
 - `app/datenschutz.html` und `app/teilnahmebedingungen.html` sind **Entwürfe mit Platzhaltern** (Datenschutz bewusst minimal: nennt noch „GitHub Pages“ als Dienstleister → **auf Hostinger, Frankfurt ändern**). Vor dem Start rechtlich prüfen lassen.
@@ -193,8 +194,10 @@ Gast-Handy ──HTTPS──▶ Traefik (TLS Let's Encrypt, Rate-Limit 1000/s pr
 - [ ] Am Eventtag: `backup.sh`; nach der Verlosung: `purge.sh`, `down -v`, Backups löschen
 
 **Inhalt / Kunde:**
-- [ ] Echter **Ablauf** (Zeiten, DJs, Acts, Ende) → `config.js` `schedule`, `scheduleIsExample:false`
-- [x] Echter **Lageplan** (15.10., nach Skizze) – noch offen: genaue Position von Security, Toiletten, Notausgängen
+- [x] Echter **Timetable** (17.10.) → `config.js` `timetable`
+- [ ] Texte der **Events** (Heiligabend, Silvester, Abfahrt 24.04.2027) vom Inhaber bestätigen lassen
+- [ ] Vibes vor `purge.sh` exportieren, falls daraus ein Post werden soll
+- [x] Echter **Lageplan** (17.10., nach Plan des Inhabers inkl. Security, Toiletten, Bunker, Foodtruck, Außenbar)
 - [ ] `helpWhere` (wo gibt's Hilfe), `address` für „Route planen“
 - [x] **Gewinn-Zuordnung**: per Los beim Ziehen (prize), Show-Reihenfolge `revealOrder` in config.js
 - [ ] Abholung: bis wann können Gewinne an der Bar abgeholt werden? → Teilnahmebedingungen-Platzhalter

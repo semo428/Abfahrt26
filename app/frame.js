@@ -3,8 +3,7 @@
   var C = window.ABFAHRT_CONFIG;
   var HANDLE = '@' + C.instagram;
   var CH = {
-    photo:  { n: 1, name: 'abfahrt-foto', file: 'abfahrt-challenge1-foto.jpg' },
-    vibe:   { n: 2, name: 'vibe-check',  file: 'abfahrt-challenge2-vibe-check.jpg' }
+    photo:  { n: 1, name: 'abfahrt-foto', file: 'abfahrt-challenge1-foto.jpg' }
   };
   var W = 1080, H = 1920;
   var canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
@@ -17,11 +16,6 @@
   }
   function loadImage(src){ return new Promise(function(res, rej){ var i = new Image(); i.onload = function(){ res(i); }; i.onerror = rej; i.src = src; }); }
   function rr(ctx, x, y, w, h, r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
-  function wrap(ctx, text, maxW){
-    var words = text.split(/\s+/), lines = [], line = '';
-    words.forEach(function(w){ var t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line){ lines.push(line); line = w; } else line = t; });
-    if (line) lines.push(line); return lines;
-  }
 
   function frame(ctx, ch){
     var g = ctx.createLinearGradient(0, 0, 0, 460);
@@ -86,28 +80,6 @@
     return toFile(ch.file);
   }
 
-  async function vibe(stars, text, funName){
-    var ch = CH.vibe; await fonts();
-    var ctx = canvas.getContext('2d');
-    var g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, '#7E1A12'); g.addColorStop(.6, '#3a0b07'); g.addColorStop(1, '#0D0706');
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    frame(ctx, ch);
-    ctx.textBaseline = 'alphabetic'; ctx.font = '700 130px Arial, sans-serif';
-    for (var i = 0; i < 5; i++){ ctx.fillStyle = i < stars ? '#E5402A' : 'rgba(243,234,230,.22)'; ctx.fillText('★', 90 + i*150, 640); }
-    ctx.font = '600 44px "IBM Plex Mono", Consolas, monospace'; ctx.fillStyle = 'rgba(243,234,230,.8)';
-    ctx.fillText('MEIN VIBE GERADE: ' + stars + '/5', 92, 730);
-    // Zitat: bei langen Sätzen kleiner, damit es nicht in „abfahrt.“ läuft
-    var size = 78, lh = 98, quote = '„' + text + '“', lines;
-    ctx.font = '700 78px Figtree, Arial, sans-serif'; lines = wrap(ctx, quote, 880);
-    if (lines.length > 3){ size = 62; lh = 78; ctx.font = '700 62px Figtree, Arial, sans-serif'; lines = wrap(ctx, quote, 880).slice(0, 4); }
-    ctx.fillStyle = '#F3EAE6';
-    lines.forEach(function(l, i){ ctx.fillText(l, 90, 880 + i*lh); });
-    ctx.font = '600 44px Figtree, Arial, sans-serif'; ctx.fillStyle = 'rgba(243,234,230,.7)';
-    ctx.fillText('— ' + (funName || '').toLowerCase(), 92, 880 + lines.length*lh + 30);
-    return toFile(ch.file);
-  }
-
   // Ergebnis: 'shared' | 'aborted' | 'unsupported' | 'blocked'
   async function share(file){
     if (!navigator.share || !navigator.canShare || !navigator.canShare({ files: [file] })) return 'unsupported';
@@ -115,5 +87,5 @@
     catch(e){ return e && e.name === 'AbortError' ? 'aborted' : 'blocked'; }
   }
 
-  window.AbfahrtFrame = { photo: photo, vibe: vibe, share: share, HANDLE: HANDLE };
+  window.AbfahrtFrame = { photo: photo, share: share, HANDLE: HANDLE };
 })();

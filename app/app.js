@@ -1,4 +1,4 @@
-// Abfahrt · alfons x — Spieler-App (Anmeldung, Mission, Challenges, Gewinn)
+// Abfahrt · alfons x — Spieler-App (Anmeldung, Gewinnspiel, Challenges, Gewinn)
 (function(){
   var C = window.ABFAHRT_CONFIG, S = window.AbfahrtStore, F = window.AbfahrtFrame;
   var root = document.getElementById('app');
@@ -20,10 +20,10 @@
   function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
   function $(sel){ return root.querySelector(sel); }
   function doneCount(p){ return ORDER.filter(function(k){ return p && p[k + '_at']; }).length; }
-  function stopTimers(){ clearInterval(pollTimer); clearInterval(clockTimer); clearInterval(vibeTimer); clearInterval(typeof vibeAuto !== 'undefined' ? vibeAuto : 0); pollTimer = clockTimer = vibeTimer = null; vibeShownAt = 0; }
+  function stopTimers(){ clearInterval(pollTimer); clearInterval(clockTimer); clearInterval(vibeTimer); clearInterval(typeof vibeAuto !== 'undefined' ? vibeAuto : 0); pollTimer = clockTimer = vibeTimer = null; }
   function render(html){ stopTimers(); root.innerHTML = html; window.scrollTo(0, 0); var h = root.querySelector('h1,h2'); if (h){ h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); } }
   function top(){
-    return '<header class="top"><a class="brand" href="#mission" aria-label="Zur Mission"><img src="logo.png" alt=""><b>abfahrt</b></a>' +
+    return '<header class="top"><a class="brand" href="#mission" aria-label="Zum Gewinnspiel"><img src="logo.png" alt=""><b>abfahrt</b></a>' +
       '<span class="date"><b>' + esc(C.eventDate.slice(0, 5).replace('.', '/')) + '</b> · alfons x</span></header>';
   }
   function foot(){
@@ -64,79 +64,124 @@
 
 
   // =====================================================================
-  // INFO-SEITEN (ohne Anmeldung nutzbar): Ablauf · Lageplan · Regeln
+  // INFO-SEITEN (ohne Anmeldung nutzbar): Timetable · Events · Lageplan · Regeln
   // =====================================================================
   function exampleNote(on, what){ return on ? '<p class="example-note">BEISPIEL – ' + esc(what) + ' folgt noch</p>' : ''; }
 
   var eventTime = S.eventTime;
 
-  function viewSchedule(){
-    var items = C.schedule || [], now = new Date(), cur = -1;
-    items.forEach(function(it, i){ if (eventTime(it.time) <= now) cur = i; });
-    if (cur === items.length - 1) cur = -1;           // nach "Ende": nichts mehr hervorheben
-    var list = items.map(function(it, i){
-      var cls = 'slot' + (it.highlight ? ' hl' : '') + (i === cur ? ' now' : '') + (cur >= 0 && i < cur ? ' past' : '');
-      return '<li class="' + cls + '"><span class="t">' + esc(it.time) + '</span><span class="d"><b>' + esc(it.title) + '</b>' +
-        (it.note ? '<small>' + esc(it.note) + '</small>' : '') + (i === cur ? '<span class="chip red">läuft gerade</span>' : '') + '</span></li>';
+  function viewTimetable(){
+    var now = new Date();
+    var floors = (C.timetable || []).map(function(fl){
+      var list = fl.sets.map(function(it){
+        var timed = it.from && it.to, cur = timed && eventTime(it.from) <= now && now < eventTime(it.to), past = timed && eventTime(it.to) <= now;
+        return '<li class="slot' + (cur ? ' now' : '') + (past ? ' past' : '') + '"><span class="t' + (timed ? '' : ' all') + '">' + (timed ? esc(it.from) : 'all night') + '</span>' +
+          '<span class="d"><b>' + esc(it.artist) + '</b><small>' + (timed ? 'bis ' + esc(it.to) + ' Uhr' : esc(it.note || '')) + '</small>' +
+          (cur ? '<span class="chip red">läuft gerade</span>' : '') + '</span></li>';
+      }).join('');
+      return '<div class="sec"><span>' + esc(fl.floor) + '</span></div><p class="floor-where">' + esc(fl.where) + '</p><ol class="timeline">' + list + '</ol>';
     }).join('');
-    render(top() + '<section class="view"><div><span class="eyebrow">Samstag · ' + esc(C.eventDate) + '</span><h1>der abend.</h1></div>' +
-      exampleNote(C.scheduleIsExample, 'der echte Ablauf') +
-      '<ol class="timeline">' + list + '</ol>' +
-      '<div class="hint"><span aria-hidden="true">🏆</span><span>Um <b>' + esc(C.revealTime) + ' Uhr</b> werden <b>' + PRIZE_TOTAL + ' Gewinne</b> live auf deinem Handy ausgelost. Mitmachen: unten auf <b>Mission</b> tippen.</span></div>' +
+    render(top() + '<section class="view"><div><span class="eyebrow">Samstag · ' + esc(C.eventDate) + '</span><h1>timetable.</h1></div>' +
+      floors +
+      '<div class="hint"><span aria-hidden="true">🏆</span><span>Um <b>' + esc(C.revealTime) + ' Uhr</b> werden <b>' + PRIZE_TOTAL + ' Gewinne</b> live auf deinem Handy ausgelost. Mitmachen: unten auf <b>Gewinnspiel</b> tippen.</span></div>' +
       '</section>' + foot());
   }
 
-  // Lageplan (nach Handskizze, ins Hochformat gedreht): oben Eingang/Kiosk, darunter DB Halle, Durchgang, Alfons;
-  // links durchgehend der Außenbereich. Maßstab: 20 Einheiten = 1 m, Ursprung 10/10.
+  // Nächste Events von alfons x (vergangene werden ausgeblendet)
+  function viewEvents(){
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    var list = (C.events || []).map(function(e){ var d = e.date.split('-'); return Object.assign({ d: new Date(+d[0], +d[1] - 1, +d[2]) }, e); })
+      .filter(function(e){ return e.d >= today; }).sort(function(a, b){ return a.d - b.d; });
+    function dd(d){ return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); }
+    function wd(d){ return d.toLocaleDateString('de-DE', { weekday: 'long' }); }
+    var feat = list.filter(function(e){ return e.featured; }).map(function(e){
+      return '<div class="ev-feature">' + (e.badge ? '<span class="chip red">' + esc(e.badge) + '</span>' : '') +
+        '<span class="eyebrow">Die nächste</span><div class="big-word">' + esc(e.title.toLowerCase()) + '<span>.</span></div>' +
+        '<div class="ev-date">' + esc(dd(e.d)) + '<span>/</span>' + e.d.getFullYear() + ' <small>' + esc(wd(e.d)) + '</small></div>' +
+        (e.text ? '<p>' + esc(e.text) + '</p>' : '') + '</div>';
+    }).join('');
+    var rest = list.filter(function(e){ return !e.featured; }).map(function(e){
+      return '<li><span class="ev-day"><b>' + esc(dd(e.d)) + '</b><small>' + esc(wd(e.d).slice(0, 2)) + '</small></span>' +
+        '<span><b>' + esc(e.title) + '</b>' + (e.text ? '<small>' + esc(e.text) + '</small>' : '') + '</span></li>';
+    }).join('');
+    render(top() + '<section class="view"><div><span class="eyebrow">Was als Nächstes kommt</span><h1>events.</h1></div>' +
+      (list.length ? feat + (rest ? '<div class="sec"><span>Außerdem im alfons x</span></div><ul class="ev-list">' + rest + '</ul>' : '')
+                   : '<p class="lede">Neue Termine folgen bald.</p>') +
+      '<a class="route-card" href="https://www.instagram.com/' + encodeURIComponent(C.instagram) + '/" target="_blank" rel="noopener">' +
+        '<span class="ri" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/></svg></span>' +
+        '<span><b>Folge ' + esc(HANDLE) + '</b><small>' + esc(C.eventsNote || '') + '</small></span><span class="ra" aria-hidden="true">›</span></a>' +
+      '</section>' + foot());
+  }
+
+  // Lageplan (nach Plan des Inhabers vom 17.10., ins Hochformat gedreht): oben Kiosk & Eingang, darunter DB Halle,
+  // Durchgang, Alfons (Bar-Gang links, X Floor + Chill-Area rechts); links durchgehend der Außenbereich. Ca. 20 Einheiten = 1 m.
   var MAP_POINTS = [
-    ['Eingang & Security', 'Hier kommst du rein – und hier hilft dir die Security.'],
-    ['Kiosk & Garderobe', 'Jacke abgeben, Snacks holen'],
-    ['DB Halle', 'Dancefloor + Piercing & Tattoo'],
+    ['Kiosk & Eingang', 'Verzehrkarte holen (EC-/Kreditkarte oder bar) · Garderobe · One Way'],
+    ['DB Halle', 'DB Floor (Dancefloor) · Piercing & Tattoo'],
     ['Durchgang', 'Verbindet DB Halle und Alfons · Ausgang zum Außenbereich'],
-    ['Alfons', 'Dancefloor'],
-    ['Bar', 'Getränke · hier holst du deinen Gewinn ab'],
-    ['Außenbereich', 'Food- & Getränketruck · Toiletten · Rauchen nur hier draußen']
+    ['Alfons', 'X Floor (Dancefloor) · Chill-Area mit gleicher Musik'],
+    ['Bar', 'Getränke mit Verzehrkarte · hier holst du deinen Gewinn ab'],
+    ['Bunker', 'Bunker Floor · Treppe runter im Außenbereich'],
+    ['Außenbereich', 'Foodtruck (Essen & Getränke) · Außenbar · Rauchen nur hier draußen'],
+    ['Toiletten', 'WC innen (Alfons, hinter der Bar) und WC außen']
   ];
+  function guardIcon(){ return '<circle cx="0" cy="-11" r="3.6" fill="#FFD23F"/><path d="M0 -7 L0 3 M-5.5 -3 L5.5 -3 M0 3 L-4 11 M0 3 L4 11" stroke="#FFD23F" stroke-width="2.6" stroke-linecap="round" fill="none"/>'; }
   function mapSvg(){
-    function guard(x, y){ return '<g transform="translate(' + x + ' ' + y + ')"><circle cx="0" cy="-11" r="3.6" fill="#FFD23F"/><path d="M0 -7 L0 3 M-5.5 -3 L5.5 -3 M0 3 L-4 11 M0 3 L4 11" stroke="#FFD23F" stroke-width="2.6" stroke-linecap="round" fill="none"/></g>'; }
+    function guard(x, y){ return '<g transform="translate(' + x + ' ' + y + ')">' + guardIcon() + '</g>'; }
     function pin(n, x, y){ return '<g class="pin"><circle cx="' + x + '" cy="' + y + '" r="13"/><text x="' + x + '" y="' + (y + 5) + '">' + n + '</text></g>'; }
     function rect(cls, x1, y1, x2, y2){ return '<rect class="' + cls + '" x="' + x1 + '" y="' + y1 + '" width="' + (x2 - x1) + '" height="' + (y2 - y1) + '"/>'; }
     function line(cls, x1, y1, x2, y2){ return '<line class="' + cls + '" x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '"/>'; }
     function text(cls, x, y, t){ return '<text class="' + cls + '" x="' + x + '" y="' + y + '">' + t + '</text>'; }
-    return '<svg class="floorplan" viewBox="0 0 460 900" role="img" aria-label="Lageplan: Eingang mit Kiosk und Garderobe, DB Halle, Durchgang, Alfons mit Bar, links der Außenbereich. 7 nummerierte Bereiche.">' +
+    var stairs = ''; for (var sx = 44; sx <= 104; sx += 12) stairs += line('step', sx, 222, sx, 288);
+    return '<svg class="floorplan" viewBox="0 0 460 910" role="img" aria-label="Lageplan: Kiosk und Eingang, DB Halle mit DB Floor und Piercing &amp; Tattoo, Durchgang, Alfons mit X Floor, Chill-Area, Bar und WC. Links der Außenbereich mit Bunker, Foodtruck, Außenbar und WC. Security überall verteilt. 8 nummerierte Bereiche.">' +
       '<defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" class="hatch"/></pattern></defs>' +
-      // Außenbereich (links, über die ganze Länge von DB Halle bis Alfons)
-      rect('outside', 10, 190, 150, 890) +
+      // Außenbereich (links, von der DB Halle bis zum Ende vom Alfons)
+      rect('outside', 10, 200, 150, 900) +
       // Gebäude
-      rect('bld', 150, 10, 246, 190) +          // Kiosk & Eingang
-      rect('bld', 150, 190, 450, 390) +         // DB Halle
-      rect('bld', 150, 390, 226, 502) +         // Durchgang
-      rect('bld', 150, 502, 418, 890) +         // Alfons
-      rect('zone dance', 160, 200, 440, 380) +  // Dancefloor DB Halle
-      rect('zone dance', 234, 512, 408, 880) +  // Dancefloor Alfons
-      // Trennwand im Alfons mit zwei Durchgängen
-      line('part', 224, 502, 224, 544) + line('part', 224, 574, 224, 780) + line('part', 224, 812, 224, 890) +
-      line('door', 224, 544, 224, 574) + line('door', 224, 780, 224, 812) +
-      rect('zone strong', 178, 586, 210, 778) + // Bar
+      rect('bld', 150, 20, 250, 200) +          // Kiosk & Eingang
+      rect('bld', 150, 200, 450, 400) +         // DB Halle
+      rect('bld', 150, 400, 230, 510) +         // Durchgang
+      rect('bld', 150, 510, 420, 900) +         // Alfons
+      // DB Halle: Piercing & Tattoo | DB Floor (offene Zonentrennung)
+      line('sep', 150, 300, 450, 300) + rect('zone dance', 160, 308, 440, 392) +
+      // Alfons: Bar-Gang links, rechts X Floor und Chill-Area
+      line('part', 230, 510, 230, 540) + line('part', 230, 580, 230, 800) + line('part', 230, 840, 230, 900) +
+      line('part', 230, 700, 305, 700) + line('part', 345, 700, 420, 700) +
+      rect('zone dance', 240, 520, 410, 690) +
+      rect('zone strong', 162, 592, 218, 772) +  // Bar
+      rect('zone', 160, 830, 220, 890) +         // WC innen
+      // Außenbereich: Bunker (Treppe runter), Foodtruck, Außenbar, WC außen
+      rect('zone', 30, 215, 120, 295) + stairs + line('arrow', 104, 255, 46, 255) + '<path class="arrowhead" d="M34 255 L48 247 L48 263 Z"/>' +
+      rect('zone', 30, 385, 120, 455) +
+      rect('zone strong', 35, 690, 115, 790) +
+      rect('zone', 40, 825, 110, 885) +
       // Türen / Durchgänge
-      line('door', 150, 60, 150, 140) +         // Eingang (4 m)
-      line('door', 158, 190, 218, 190) +        // Kiosk → DB Halle
-      line('door', 162, 390, 206, 390) +        // DB Halle → Durchgang
-      line('door', 162, 502, 206, 502) +        // Durchgang → Alfons
-      line('door', 150, 416, 150, 476) +        // Durchgang → Außenbereich
+      line('door', 150, 70, 150, 150) +         // Eingang (4 m)
+      line('door', 160, 200, 230, 200) +        // Kiosk → DB Halle
+      line('door', 160, 400, 220, 400) +        // DB Halle → Durchgang
+      line('door', 160, 510, 220, 510) +        // Durchgang → Alfons
+      line('door', 150, 425, 150, 485) +        // Durchgang → Außenbereich
+      line('door', 230, 540, 230, 580) + line('door', 230, 800, 230, 840) + line('door', 305, 700, 345, 700) +
       // Eingangspfeil von der Straße
-      line('arrow', 44, 100, 132, 100) + '<path class="arrowhead" d="M144 100 L130 92 L130 108 Z"/>' +
-      text('lbl', 88, 82, 'Eingang') + text('lbl tiny', 88, 126, '4 m breit') +
+      line('arrow', 40, 110, 126, 110) + '<path class="arrowhead" d="M140 110 L126 102 L126 118 Z"/>' +
+      text('lbl', 84, 92, 'Eingang') + text('lbl tiny', 84, 136, '4 m breit') + text('lbl eyebrow', 76, 192, 'ONE WAY') +
       // Beschriftungen
-      text('lbl', 198, 96, 'Kiosk') + text('lbl tiny', 198, 116, 'Garderobe') +
-      text('lbl eyebrow', 300, 262, 'DB HALLE') + text('lbl big', 300, 294, 'Dancefloor') + text('lbl tiny', 300, 318, '+ Piercing &amp; Tattoo') +
-      text('lbl start', 238, 442, 'Durchgang') + text('lbl tiny start', 238, 462, 'Ausgang Außenbereich') +
-      text('lbl eyebrow', 321, 650, 'ALFONS') + text('lbl big', 321, 682, 'Dancefloor') +
-      text('lbl small', 194, 687, 'Bar') +
-      text('lbl', 80, 520, 'Außen-') + text('lbl', 80, 540, 'bereich') +
-      text('lbl tiny', 80, 568, 'Food-Truck') + text('lbl tiny', 80, 586, 'Getränke-') + text('lbl tiny', 80, 602, 'Truck') + text('lbl tiny', 80, 624, 'Toiletten') +
-      guard(166, 52) + guard(166, 160) +
-      pin(1, 26, 100) + pin(2, 226, 32) + pin(3, 424, 214) + pin(4, 188, 446) + pin(5, 390, 528) + pin(6, 194, 562) + pin(7, 80, 216) +
+      text('lbl', 200, 96, 'Kiosk') + text('lbl tiny', 200, 116, 'Garderobe') + text('lbl tiny', 200, 134, 'Verzehrkarte') +
+      text('lbl eyebrow', 340, 228, 'DB HALLE') + text('lbl', 300, 262, 'Piercing &amp; Tattoo') +
+      text('lbl big', 300, 352, 'DB Floor') + text('lbl tiny', 300, 374, 'Dancefloor') +
+      text('lbl start', 242, 448, 'Durchgang') + text('lbl tiny start', 242, 468, 'Ausgang Außenbereich') +
+      text('lbl eyebrow', 325, 548, 'ALFONS') + text('lbl big', 325, 604, 'X Floor') + text('lbl tiny', 325, 626, 'Dancefloor · DJ') +
+      text('lbl', 325, 790, 'Chill-Area') + text('lbl tiny', 325, 810, 'gleiche Musik') +
+      text('lbl small', 190, 686, 'Bar') + text('lbl small', 190, 865, 'WC') +
+      text('lbl', 75, 320, 'Bunker') + text('lbl tiny', 75, 337, 'Treppe runter') +
+      text('lbl small', 75, 413, 'Foodtruck') + text('lbl tiny', 75, 430, 'Essen &amp;') + text('lbl tiny', 75, 445, 'Getränke') +
+      text('lbl', 75, 560, 'Außen-') + text('lbl', 75, 580, 'bereich') + text('lbl tiny', 75, 600, 'Rauchen hier') +
+      text('lbl small', 75, 744, 'Außenbar') + text('lbl small', 75, 860, 'WC') +
+      // Security
+      guard(132, 62) + guard(132, 168) + guard(250, 226) + guard(420, 336) + guard(202, 540) + guard(395, 660) + guard(395, 862) +
+      guard(132, 262) + guard(122, 505) + guard(132, 650) +
+      // Nummern (Legende)
+      pin(1, 232, 40) + pin(2, 428, 222) + pin(3, 190, 455) + pin(4, 400, 540) + pin(5, 190, 620) + pin(6, 24, 214) + pin(7, 75, 527) + pin(8, 132, 870) +
       '</svg>';
   }
   function viewMap(){
@@ -145,12 +190,18 @@
     var route = '<a class="route-card" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(C.address) + '" target="_blank" rel="noopener">' +
       '<span class="ri" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg></span>' +
       '<span><b>Route planen</b><small>Weg zum alfons x in Google Maps</small></span><span class="ra" aria-hidden="true">›</span></a>';
+    function info(sym, html){ return '<li><span class="sym" aria-hidden="true">' + sym + '</span><span>' + html + '</span></li>'; }
     render(top() + '<section class="view">' + route + '<div><span class="eyebrow">Wo ist was?</span><h1>lageplan.</h1></div>' +
       exampleNote(C.mapIsExample, 'der echte Lageplan') +
+      '<ul class="good-to-know">' +
+        info('💳', '<b>Verzehrkarte für Getränke.</b> ' + esc(C.kioskInfo)) +
+        info('🛡️', '<b>Security ist überall.</b> Bei einem Problem sprich einfach die nächste an – du musst nicht zum Eingang.') +
+        info('↺', '<b>One Way:</b> Einmal raus = neuer Eintritt. Kein Wiedereinlass.') +
+      '</ul>' +
       '<div class="map-wrap">' + img + '</div>' +
+      '<p class="muted guard-note"><svg viewBox="-8 -16 16 30" aria-hidden="true">' + guardIcon() + '</svg><span><b style="color:#FFD23F">Gelbe Figuren</b> = Security. Dort bekommst du Hilfe.</span></p>' +
+      '<p class="muted guard-note"><svg viewBox="0 0 16 30" aria-hidden="true"><line x1="8" y1="2" x2="8" y2="28" stroke="var(--ok)" stroke-width="5"/></svg><span><b style="color:var(--ok)">Grüne Striche</b> = Durchgang bzw. Tür. Schematischer Plan, Maße gerundet.</span></p>' +
       '<ol class="legend">' + legend + '</ol>' +
-      '<p class="muted guard-note"><svg viewBox="-8 -16 16 30" aria-hidden="true"><circle cx="0" cy="-11" r="3.6" fill="#FFD23F"/><path d="M0 -7 L0 3 M-5.5 -3 L5.5 -3 M0 3 L-4 11 M0 3 L4 11" stroke="#FFD23F" stroke-width="2.6" stroke-linecap="round" fill="none"/></svg><span><b style="color:#FFD23F">Gelbe Figuren</b> = Security. Dort bekommst du Hilfe.</span></p>' +
-      '<p class="muted guard-note"><svg viewBox="0 0 16 30" aria-hidden="true"><line x1="8" y1="2" x2="8" y2="28" stroke="var(--ok)" stroke-width="5"/></svg><span><b style="color:var(--ok)">Grüne Striche</b> = Durchgang bzw. Ausgang. Schematischer Plan, Maße gerundet.</span></p>' +
       '</section>' + foot());
   }
 
@@ -178,7 +229,7 @@
   }
 
   // ---------- Navigation (Tab-Leiste unten) ----------
-  var TABS = ['mission', 'ablauf', 'plan', 'regeln'];
+  var TABS = ['mission', 'timetable', 'plan', 'regeln', 'events'];
   var ready = false;
   function currentTab(){ var t = location.hash.replace('#', ''); return TABS.indexOf(t) >= 0 ? t : 'mission'; }
   function setTab(t){
@@ -188,7 +239,8 @@
   }
   function onRoute(){
     var t = currentTab(); setTab(t);
-    if (t === 'ablauf') return viewSchedule();
+    if (t === 'timetable') return viewTimetable();
+    if (t === 'events') return viewEvents();
     if (t === 'plan') return viewMap();
     if (t === 'regeln') return viewRules();
     if (!ready) return boot();
@@ -262,23 +314,22 @@
           '<div><span class="eyebrow">Mitmachen &amp; gewinnen</span><h1 class="reg-title">ticket lösen.</h1></div>' +
           '<div class="field"><label for="ig">Dein Instagram</label><div class="input-at"><span>@</span><input class="input" id="ig" name="ig" maxlength="30" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="deinname" required value="' + esc(prefill) + '"></div><small>Damit finden wir bei der Ziehung deine Story.</small></div>' +
           '<label class="check" for="ok"><input type="checkbox" id="ok" required><span>Ich akzeptiere die <a href="teilnahmebedingungen.html" target="_blank" rel="noopener">Teilnahmebedingungen</a>.</span></label>' +
-          '<p class="name-hint"><span aria-hidden="true">🎲</span><span>Deinen <b>Spaßnamen</b> ziehst du gleich per Los – unter diesem Namen erscheinst du bei den Live-Vibes und der Live-Auslosung.</span></p>' +
+          '<p class="name-hint"><span aria-hidden="true">🎲</span><span>Deinen <b>Spaßnamen</b> ziehst du gleich per Los – unter diesem Namen erscheinst du bei der Live-Auslosung.</span></p>' +
           errorBox('reg-err') +
           '<button class="btn red" id="reg-btn" type="submit">🎲 Spaßnamen ziehen</button>' +
           '<div class="counter" id="counter" hidden><span class="n" id="count">0</span><span>sind schon dabei</span></div>' +
         '</form>' +
         drawCard() +
-        '<div class="vibes" id="vibes" hidden><div class="vibes-head"><span class="eyebrow">Live-Vibes</span><span class="vibes-avg" id="v-avg"></span></div>' +
-      '<div class="vibes-strip" id="v-strip" aria-live="off"></div></div>' +
+        vibesBox() +
         '<div class="sec"><span>Das kannst du gewinnen</span></div>' +
         prizeGrid() +
         '<div class="sec"><span>So läuft’s</span></div>' +
         '<ol class="steps"><li><b>Anmelden</b><span>Instagram eintragen, Spaßnamen ziehen – dauert 20 Sekunden.</span></li>' +
         '<li><b>2 Challenges machen</b><span>Foto als Story &amp; Vibe-Check – alles hier in der App.</span></li>' +
         '<li><b>Um ' + esc(C.revealTime) + ' Uhr gewinnen</b><span>Live-Auslosung auf deinem Handy. Gewinne holst du an der Bar ab.</span></li></ol>' +
-        '<p class="fineprint">Wir speichern nur Spaßname, Instagram-Name und deine erledigten Challenges. Fotos bleiben auf deinem Handy. Dein Spaßname und dein Vibe sind für andere sichtbar. Mehr im <a href="datenschutz.html">Datenschutzhinweis</a>.</p>' +
+        '<p class="fineprint">Wir speichern nur Spaßname, Instagram-Name und deine erledigten Challenges. Fotos bleiben auf deinem Handy. Dein Vibe wird nicht öffentlich angezeigt; dein Spaßname nur, falls du gewinnst. Mehr im <a href="datenschutz.html">Datenschutzhinweis</a>.</p>' +
       '</section>' + foot());
-    refreshStats(); vibeTimer = setInterval(refreshStats, 60000);
+    startVibes(); refreshStats(); vibeTimer = setInterval(refreshStats, 60000);
     $('#reg').addEventListener('submit', async function(ev){
       ev.preventDefault();
       var btn = $('#reg-btn'), err = $('#reg-err'); err.hidden = true;
@@ -298,8 +349,8 @@
     render(top() + '<section class="view">' +
       '<span class="eyebrow">Ticket gelöst ✓</span>' +
       '<div class="name-roll" id="roll"><small>Dein Spaßname für heute Nacht</small><b id="roll-name">' + esc(me.fun_name) + '</b></div>' +
-      '<div id="after" class="after-roll"' + (roll ? ' hidden' : '') + '><h1>du bist dabei.</h1><p class="lede">Unter diesem Namen erscheinst du heute Nacht bei den Live-Vibes und der Live-Auslosung.</p>' +
-      '<button class="btn red" id="go">' + (next ? 'Weiter zur Challenge' : 'Zu deiner Mission') + '</button></div>' +
+      '<div id="after" class="after-roll"' + (roll ? ' hidden' : '') + '><h1>du bist dabei.</h1><p class="lede">Unter diesem Namen erscheinst du heute Nacht bei der Live-Auslosung.</p>' +
+      '<button class="btn red" id="go">' + (next ? 'Weiter zur Challenge' : 'Zu deinen Challenges') + '</button></div>' +
       '</section>' + foot());
     $('#go').onclick = route;
     if (!roll) return;
@@ -332,14 +383,12 @@
       ? '<div class="pot in"><b>du bist im lostopf.</b><p>Um ' + esc(C.revealTime) + ' Uhr werden ' + PRIZE_TOTAL + ' Gewinne live hier auf deinem Handy ausgelost – lass die Seite offen.</p></div>'
       : '<div class="pot"><b>noch ' + (TOTAL - n) + ' bis zum lostopf.</b><p>Tippe oben auf eine Challenge und leg los.</p></div>';
     render(top() + ticker() + '<section class="view">' + rulesCard() + charCard(me, true) +
-      '<div class="sec"><span>Deine Mission</span></div>' +
+      '<div class="sec"><span>Deine Challenges</span></div>' +
       '<div><div class="progress-head"><span class="eyebrow">Fortschritt</span><span class="n">' + n + '<span>/' + TOTAL + '</span></span></div>' +
       '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="' + TOTAL + '" aria-valuenow="' + n + '"><i style="width:' + (n / TOTAL * 100) + '%"></i></div></div>' +
       (n < TOTAL ? '<p class="howto">👇 <b>Tippe auf eine Challenge.</b> Foto als Story mit ' + esc(HANDLE) + ' + Vibe-Check – beide erledigt = du bist im Lostopf.</p>' : '') +
       '<ul class="tasks" style="list-style:none;margin:0;padding:0">' + tasks + '</ul>' + pot + drawCard() +
-      '<div class="sec" id="live-sec" hidden><span>Live im Club</span></div>' +
-      '<div class="vibes" id="vibes" hidden><div class="vibes-head"><span class="eyebrow">Live-Vibes</span><span class="vibes-avg" id="v-avg"></span></div>' +
-      '<div class="vibes-strip" id="v-strip" aria-live="off"></div></div>' +
+      '<div class="sec"><span>Live im Club</span></div>' + vibesBox() +
       '<div class="counter" id="counter" hidden><span class="n" id="count">0</span><span>sind heute dabei</span></div>' +
       (isWinner(me) ? '' :
         '<div class="reset fineprint-zone"><button class="linkbtn" id="reset">Daten löschen &amp; neu anmelden</button>' +
@@ -348,7 +397,7 @@
       '</section>' + foot());
     wireReset();
     root.querySelectorAll('button.task').forEach(function(b){ b.addEventListener('click', function(){ viewChallenge(b.dataset.k); }); });
-    refreshStats();
+    startVibes(); refreshStats();
     pollTimer = setInterval(async function(){
       try{
         var fresh = await S.me(); if (!fresh) return;
@@ -374,39 +423,35 @@
       }catch(e){ showError('reset-err', e.message); busy(this, false, 'Ja, alles löschen'); }
     };
   }
-  // Live-Vibes: max. 7 zufällige Vibes anderer Gäste, neue Auswahl höchstens 1× pro Minute
-  var vibeShownAt = 0, vibeAuto = null;
-  function renderVibes(st){
-    var box = $('#vibes'); if (!box) return;
-    var list = st.sample || [];
-    if (!st.vibe_count || !list.length){ box.hidden = true; return; }
-    $('#v-avg').innerHTML = esc(Number(st.vibe_avg).toFixed(1).replace('.', ',')) + '<em>★</em> · ' + st.vibe_count;
-    if ($('#live-sec')) $('#live-sec').hidden = false;
-    box.hidden = false;
-    if (Date.now() - vibeShownAt < 59000 && $('#v-strip').children.length) return;
-    vibeShownAt = Date.now();
-    $('#v-strip').innerHTML = list.slice(0, 7).map(function(v){
-      return '<div class="vb"><span class="vs">' + '★'.repeat(v.stars) + '<i>' + '★'.repeat(5 - v.stars) + '</i></span><p>„' + esc(v.text) + '“</p><small>— ' + esc(v.fun_name) + '</small></div>';
+  // Live-Vibes: feste Auswahl aus config.js (echte Vibes der Gäste werden nicht öffentlich gezeigt), läuft automatisch alle 4 s weiter
+  var vibeAuto = null;
+  function vibesBox(){
+    if (!(C.vibes || []).length) return '';
+    return '<div class="vibes" id="vibes"><div class="vibes-head"><span class="eyebrow">Live-Vibes</span><span class="vibes-avg" id="v-avg"></span></div>' +
+      '<div class="vibes-strip" id="v-strip" aria-live="off"></div></div>';
+  }
+  function startVibes(){
+    var strip = $('#v-strip'); if (!strip) return;
+    var list = C.vibes.slice().sort(function(){ return Math.random() - .5; });
+    strip.innerHTML = list.map(function(v){
+      return '<div class="vb"><span class="vs">' + '★'.repeat(v.stars) + '<i>' + '★'.repeat(5 - v.stars) + '</i></span><p>„' + esc(v.text) + '“</p><small>— ' + esc(v.name) + '</small></div>';
     }).join('');
-    $('#v-strip').scrollLeft = 0;
     clearInterval(vibeAuto);
-    if (list.length > 1){
-      var paused = 0;
-      $('#v-strip').onpointerdown = function(){ paused = Date.now(); };
-      vibeAuto = setInterval(function(){
-        var el = $('#v-strip'); if (!el){ clearInterval(vibeAuto); return; }
-        if (Date.now() - paused < 8000) return;
-        var w = el.firstElementChild ? el.firstElementChild.offsetWidth + 10 : 200;
-        if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 4) el.scrollTo({ left: 0, behavior: 'smooth' });
-        else el.scrollBy({ left: w, behavior: 'smooth' });
-      }, 4000);
-    }
+    var paused = 0;
+    strip.onpointerdown = function(){ paused = Date.now(); };
+    vibeAuto = setInterval(function(){
+      var el = $('#v-strip'); if (!el){ clearInterval(vibeAuto); return; }
+      if (Date.now() - paused < 8000) return;
+      var w = el.firstElementChild ? el.firstElementChild.offsetWidth + 10 : 200;
+      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 4) el.scrollTo({ left: 0, behavior: 'smooth' });
+      else el.scrollBy({ left: w, behavior: 'smooth' });
+    }, 4000);
   }
   async function refreshStats(){
     try{
       var st = await S.stats(); if (!st) return;
       if (st.players > 0 && $('#count')){ $('#count').textContent = st.players.toLocaleString('de-DE'); $('#counter').hidden = false; }
-      renderVibes(st);
+      if (st.vibe_count && $('#v-avg')) $('#v-avg').innerHTML = esc(Number(st.vibe_avg).toFixed(1).replace('.', ',')) + '<em>★</em> · ' + st.vibe_count;
     }catch(e){}
   }
 
@@ -414,11 +459,11 @@
   function viewChallenge(key){
     var ch = CH[key], done = !!me[key + '_at'];
     if (!(history.state && history.state.ch === key)) history.pushState({ ch: key }, '', location.hash || '#mission');
-    var head = '<button type="button" class="backbtn" id="back"><span aria-hidden="true">‹</span> Zurück zur Mission</button>' +
+    var head = '<button type="button" class="backbtn" id="back"><span aria-hidden="true">‹</span> Zurück zum Gewinnspiel</button>' +
       '<div class="chal-head"><span class="chip red">Challenge ' + ch.n + '</span><h1>' + esc(ch.title) + '</h1><p class="task-text">' + esc(ch.task) + '</p></div>' +
       '<div class="done-box" id="done-box"' + (done ? '' : ' hidden') + '><b>erledigt ✓</b><span class="status">Die Challenge ist abgehakt. Du kannst sie trotzdem nochmal machen.</span></div>';
     render(top() + '<section class="view">' + head + (key === 'vibe' ? vibeTools() : photoTools(key)) +
-      '<button class="btn ghost" id="to-dash">‹ Zurück zur Mission</button></section>' + foot());
+      '<button class="btn ghost" id="to-dash">‹ Zurück zum Gewinnspiel</button></section>' + foot());
     $('#to-dash').onclick = goBack;
     $('#back').onclick = goBack;
     if (key === 'vibe') wireVibe(); else wirePhoto(key);
@@ -480,13 +525,10 @@
       '<div class="field"><label for="vt">Dein Vibe in einem Satz</label><textarea class="input" id="vt" rows="2" maxlength="80" placeholder="z. B. bester DJ seit Jahren"></textarea></div>' +
       errorBox('ch-err') +
       '<button class="btn red" id="send">Vibe abschicken</button>' +
-      '<img class="preview" id="preview" alt="Deine Vibe-Karte" hidden>' +
-      '<div class="hint" id="tag-hint" hidden><span aria-hidden="true">👉</span><span>Optional: Teile deine Vibe-Karte als Story. So markierst du richtig: In Instagram den Sticker <b>„@ Erwähnung“</b> wählen, <b>alfonsx</b> tippen und in der Liste auf <b>' + esc(HANDLE) + '</b> tippen. Dann auf das Feld <b>„hier alfons x markieren“</b> oben im Bild schieben.</span></div>' +
-      '<button class="btn" id="share" hidden>Vibe-Karte in Story teilen</button>' +
-      '<p class="status" id="status" aria-live="polite"></p>';
+      '<p class="status" id="status" aria-live="polite">Kein Posten nötig. Dein Vibe wird nicht öffentlich angezeigt – vielleicht landet er (ohne deinen Namen) in einem Post von ' + esc(HANDLE) + '.</p>';
   }
   function wireVibe(){
-    var stars = 0, file = null, btns = root.querySelectorAll('.stars button');
+    var stars = 0, btns = root.querySelectorAll('.stars button');
     btns.forEach(function(b){
       b.addEventListener('click', function(){
         stars = +b.dataset.v;
@@ -504,15 +546,8 @@
         btn.hidden = true;
         $('#done-box').hidden = false;
         if (doneCount(me) === TOTAL) $('#done-box .status').textContent = 'Beide geschafft – du bist im Lostopf! Live-Auslosung um ' + C.revealTime + ' Uhr auf deinem Handy.';
-        var out = await F.vibe(stars, t, me.fun_name); file = out.file;
-        $('#preview').src = out.url; $('#preview').hidden = false; $('#share').hidden = false; $('#tag-hint').hidden = false;
-        $('#status').textContent = 'Abgeschickt ✓ Dein Vibe zählt jetzt zur Live-Stimmung.';
+        $('#status').textContent = 'Abgeschickt ✓ Danke für deinen Vibe!';
       }catch(e){ showError('ch-err', e.message); busy(btn, false, 'Vibe abschicken'); }
-    });
-    $('#share').addEventListener('click', async function(){
-      if (!file) return;
-      var r = await F.share(file);
-      if (r === 'unsupported' || r === 'blocked') $('#status').innerHTML = 'Direktes Teilen geht hier nicht. <b>Bild gedrückt halten → „Bild sichern“</b> → in Instagram als Story posten.';
     });
   }
 

@@ -92,11 +92,8 @@
     },
     stats: function(){
       var players = lsGet('ab_players', []), vibes = lsGet('ab_vibes', []);
-      var byId = {}; players.forEach(function(p){ byId[p.id] = p; });
       var avg = vibes.length ? vibes.reduce(function(s,v){ return s + v.stars; }, 0) / vibes.length : null;
-      return Promise.resolve({ players: players.length, vibe_avg: avg, vibe_count: vibes.length,
-        recent: vibes.slice(-3).reverse().map(function(v){ return { fun_name: (byId[v.player_id]||{}).fun_name || '?', stars: v.stars, text: v.text }; }),
-        sample: vibes.slice().sort(function(){ return Math.random() - .5; }).slice(0, 7).map(function(v){ return { fun_name: (byId[v.player_id]||{}).fun_name || '?', stars: v.stars, text: v.text }; }) });
+      return Promise.resolve({ players: players.length, vibe_avg: avg, vibe_count: vibes.length });
     },
     // Live-Auslosung: Gewinner gibt es erst ab reveal_at (der echte Server hält sie bis dahin zurück)
     reveal: function(){

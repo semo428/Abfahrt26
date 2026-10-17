@@ -148,6 +148,19 @@ test('Admin: alle auslosen, maskiert bis reveal_at, bestätigen, ablehnen mit Er
   assert.deepEqual((await call('GET', '/api/admin/session', { cookie })).json, { admin: false });
 });
 
+test('feste Live-Vibes: Namen können nie an einen Gast vergeben werden', () => {
+  const fs = require('fs'), path = require('path'), vm = require('vm');
+  const sandbox = { window: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(require('../src/config').staticRoot, 'config.js'), 'utf8'), sandbox);
+  const vibes = sandbox.window.ABFAHRT_CONFIG.vibes;
+  assert.equal(vibes.length, 20);
+  const taken = new Set(FUN_NAMES.map(n => n.toLowerCase()));
+  for (const v of vibes){
+    // Server vergibt nur Namen aus der Liste oder (Liste erschöpft) „Listenname + Zahl“
+    assert.ok(!taken.has(v.name.toLowerCase()) && !taken.has(v.name.replace(/\s+\d+$/, '').toLowerCase()), 'Vibe-Name steht in fun-names.js: ' + v.name);
+  }
+});
+
 test('Anmeldung: Spaßname vom Server, Validierung, Eindeutigkeit, ein Eintrag pro Gerät', async () => {
   // Eigene Spaßnamen sind nicht mehr erlaubt – auch keine harmlosen
   assert.equal((await call('POST', '/api/register', { body: { fun_name: 'Gültig', ig_handle: 'abc' } })).json.error, 'invalid_input');
@@ -199,10 +212,8 @@ test('me, Foto-Challenge idempotent, Vibe mit Filter und Limits, Statistik', asy
   const s = await call('GET', '/api/stats');
   assert.equal(s.status, 200);
   assert.ok(s.json.players >= 1); assert.ok(s.json.vibe_count >= 2); assert.equal(typeof s.json.vibe_avg, 'number');
-  assert.equal(s.json.recent[0].text, 'zweiter');
-  assert.equal(s.json.recent[1].text, 'läuft bei mir', 'Leerraum normalisiert');
-  assert.ok(Array.isArray(s.json.sample) && s.json.sample.length >= 1 && s.json.sample.length <= 7);
-  assert.deepEqual(Object.keys(s.json.sample[0]).sort(), ['fun_name', 'stars', 'text']);
+  assert.deepEqual(Object.keys(s.json).sort(), ['players', 'vibe_avg', 'vibe_count']);
+  assert.doesNotMatch(s.text, /zweiter|läuft/, 'keine Vibe-Texte in der Statistik');
   assert.doesNotMatch(s.text, /ig_handle|t_/, 'keine Instagram-Namen in der Statistik');
 });
 

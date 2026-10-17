@@ -3,7 +3,12 @@
 Webapp + Gewinnspiel für die Party „Abfahrt“ im Club/Bar **alfons x** (Bahnhofstraße 7, Bahnhofsgebäude Sigmaringen).
 Auftraggeber: Inhaber alfons x. Umsetzung: ASK Connect (Projektleitung + Kollege fürs Backend – beide sollen auf **demselben Stand** sein).
 
-## Zuletzt geändert (15.10.2026) – bitte zuerst lesen
+## Zuletzt geändert (17.10.2026) – bitte zuerst lesen
+1. **Tabs:** Gewinnspiel (Hash bleibt `#mission`) · **Timetable** (echtes Line-up, `config.js` → `timetable`) · Lageplan · Regeln · **Events** (neu, `config.js` → `events`).
+2. **Neuer Lageplan** (Plan des Inhabers): Bunker, Foodtruck, Außenbar, WC innen/außen, Chill-Area, 10 Security-Posten, One Way; „Gut zu wissen“ mit Verzehrkarte am Kiosk.
+3. **Vibes nicht mehr öffentlich:** Live-Vibes = 20 feste Texte (`config.js` → `vibes`, bewusst mit ein paar Tippfehlern; Namen dürfen nicht in `fun-names.js` stehen – prüft ein Server-Test); Vibe-Check wird nur gespeichert (für einen späteren Post), kein Story-Teilen mehr. **API:** `GET /api/stats` liefert nur noch `{ players, vibe_avg, vibe_count }`.
+
+## Davor (15.10.2026)
 Branch `feature/lageplan-spassnamen`:
 1. **Spaßnamen werden zugelost, nicht mehr eingetippt** (Schutz vor Beleidigungen wie „TobiasIstEin…“, die sonst in Live-Vibes und Live-Auslosung für alle sichtbar wären). Gast gibt nur Instagram ein → „🎲 Spaßnamen ziehen“ → Namen rattern durch und rasten ein. Liste: **`app/fun-names.js`** (1000 Namen, jugendfreundlich, keine Alkohol-Bezüge, max. 20 Zeichen; neu erzeugen mit `server/scripts/gen-fun-names.py app/fun-names.js`). Der **Server vergibt** einen zufälligen, noch freien Namen (`POST /api/register` nimmt nur noch `ig_handle`; `fun_name` im Body → `invalid_input`). Jeder Name max. 1×; nach „Daten löschen“ wird er wieder frei; ist die Liste erschöpft → Name + Zahl. Server prüft die Liste beim Start (Länge, Wortfilter, Duplikate).
 2. **Echter Lageplan** (nach Skizze des Inhabers, Hochformat): Eingang + Kiosk/Garderobe → DB Halle (Dancefloor, Piercing & Tattoo) → Durchgang (Ausgang Außenbereich) → Alfons (Dancefloor, Bar) · links Außenbereich (Food-/Getränketruck, Toiletten). SVG in `app/app.js` → `mapSvg()`, Legende `MAP_POINTS`.
@@ -23,9 +28,9 @@ Mehr Sichtbarkeit/Reichweite für den Instagram-Account **@alfonsx_sigmaringen**
 
 ## Repo-Struktur
 - `app/` – die Webapp (reines HTML/CSS/JS, kein Build). Einstieg `app/index.html`, Team-Ansicht `app/admin.html`.
-  - `app/config.js` – alle Inhalte/Platzhalter (Gewinne, Ablauf, Lageplan, Datum, Instagram-Handle)
+  - `app/config.js` – alle Inhalte/Platzhalter (Gewinne, Timetable, Events, Live-Vibes, Lageplan-Hinweise, Datum, Instagram-Handle)
   - `app/store.js` – **Datenschicht**: Demo-Modus (localStorage) auf `*.github.io`/localhost, sonst die eigene API unter `/api`
-  - `app/app.js` – Spieler-App (Mission, Challenges, Ablauf, Lageplan, Regeln) · `app/frame.js` – Story-Rahmen im Browser · `app/admin.js` – Ziehung + Story-Prüfung
+  - `app/app.js` – Spieler-App (Gewinnspiel, Challenges, Timetable, Events, Lageplan, Regeln) · `app/frame.js` – Story-Rahmen im Browser · `app/admin.js` – Ziehung + Story-Prüfung
   - `app/supabase/schema.sql` – alte Supabase-Referenz (wird nicht ausgeliefert; maßgeblich ist `server/sql/`)
 - `server/` – Backend (Weg C): Fastify-API (`src/`), Schema (`sql/`), Docker/Compose (`Dockerfile`, `deploy/`), Tests (`test/`), Lasttest (`loadtest/`), Skripte (`scripts/`: sync, gen-env, backup, purge). Betrieb siehe `docs/projekt-kontext.md` §6
 - `index.html` (Root) – Kurzfassung des Konzepts für den Inhaber (nicht die App)
@@ -39,7 +44,7 @@ Mehr Sichtbarkeit/Reichweite für den Instagram-Account **@alfonsx_sigmaringen**
 5. **Zugang für Gäste: QR-Codes vor Ort** zur Webapp. Vorregistrierung per Reel/ManyChat („Kommentiere Abfahrt“ → DM) ist **voraussichtlich gestrichen**.
 6. **Kein NFC**, **keine Leinwand/kein Beamer**. Story-Reposts macht das Team manuell; Best-Pose-Voting via Umfrage-Sticker in der Bar-Story.
 7. **2 Challenges** (seit 07.10., Wunsch Inhaber): **Abfahrt-Foto** (Key `photo`, „Bild von dir während der Abfahrt, gerne mit deiner Crew“) + **Vibe-Check** (Key `vibe`). Best Pose ist gestrichen. Challenge zählt als erledigt, sobald „In Story teilen“ getippt bzw. der Vibe abgeschickt wurde. Ob wirklich gepostet + markiert wurde, prüft **ein Mensch** bei der Ziehung im DM-Postfach der Bar (Story-Erwähnungen).
-8. **Live-Vibes-Fenster:** zeigt zufällig max. 7 Vibes anderer Gäste (Spaßname + Sterne + Satz), neue Auswahl höchstens 1×/Minute; Spaßname/Vibe sind damit öffentlich sichtbar (steht in Teilnahmebedingungen + Datenschutz).
+8. **Live-Vibes-Fenster (seit 17.10.):** zeigt nur **20 feste Vibes** aus `config.js`. Echte Vibes der Gäste werden gespeichert, aber **nie öffentlich** gezeigt oder über die API herausgegeben (Schutz vor Beleidigungen); alfons x darf sie ohne Namen in einem Post zitieren (steht in Teilnahmebedingungen + Datenschutz).
 9. **Auslosung (seit 10.10., Wunsch Inhaber – kein DJ mehr):** Um **03:30** lost der **Server automatisch** (`DRAW_AT` in der `.env`, genau einmal, falls bis dahin niemand von Hand „Jetzt auslosen“ getippt hat; der Knopf bleibt für früheres Auslosen und „Freie Plätze nachziehen“) → alle 13 Gewinner werden mit Gewinn (`prize`: meet/shirt/drink) + Gewinncode gezogen (status `drawn`). Team prüft bis 04:00 jede Story → „Story da“ (`won`) oder „Neu ziehen“ (`rejected`, für denselben Gewinn wird sofort nachgezogen). Um **04:00** (`REVEAL_AT` in der `.env`) startet auf allen Handys gleichzeitig die **Live-Show** (Namen würfeln, Countdown, Runden T-Shirt → Getränk → Finale Meet & Greet). **Der Server darf Gewinner/Status/Gewinn vor reveal_at nicht herausgeben** (weder in `me` noch in `reveal`). Gewinner holen den Gewinn **an der Bar** ab. Achtung: In dieser Nacht endet die Sommerzeit – 04:00 = MEZ (+01).
 10. Inhalt: **kein Alkohol-Bezug** in Texten/Beispielen; UI **„idiotensicher, so viel wie nötig, so wenig wie möglich“** (Wunsch des Inhabers).
 11. **Spaßnamen nur per Los** aus `app/fun-names.js` (seit 15.10.), vom Server vergeben, nie frei eingebbar.

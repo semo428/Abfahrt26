@@ -92,6 +92,11 @@ Ergänzung zu `projekt-kontext.md`. Hier steht **wie** wir zu den Entscheidungen
 - **Lageplan:** Inhaber hat den Aufbau skizziert (Eingang/Kiosk mit Garderobe, DB Halle mit Dancefloor + Piercing & Tattoo, Durchgang mit Ausgang zum Außenbereich, Alfons mit Dancefloor + Bar, Außenbereich mit Food-/Getränketruck + Toiletten). Umgesetzt als SVG im **Hochformat** (Skizze um 90° gedreht, nicht gespiegelt), Beschriftungen waagerecht, nummerierte Legende.
 - **Spaßnamen:** Problem: frei wählbare Namen („TobiasIstEin…“) wären in Live-Vibes und Live-Auslosung für alle sichtbar. Lösung: **1000 vorab geprüfte Namen** (von Claude erstellt: ~500 einzeln formuliert + kuratierte Kombinationen wie „Disco-Giraffe“; jugendfreundlich, kein Alkohol, keine Vornamen) werden beim Anmelden **zugelost**; jeder nur einmal. Kein „Neu würfeln“ (idiotensicher, keine Reservierungslogik nötig).
 
+### 17.10. – Timetable, Events, neuer Lageplan, Vibes nicht mehr öffentlich
+- **Tabs:** „Mission“ → **Gewinnspiel**, „Ablauf“ → **Timetable** (echte Line-up-Daten: X Floor, Bunker Floor, DB Floor), neuer Tab **Events** (nächste Termine: Abfahrt 24.04.2027 = 60. Event/Jubiläum groß, dazu Heiligabend + Silvester; Texte von Claude vorgeschlagen).
+- **Lageplan** nach neuem Plan des Inhabers: Bunker (Treppe im Außenbereich), Foodtruck, Außenbar, WC innen + außen, Chill-Area neben dem X Floor, 10 Security-Posten, One Way (kein Wiedereinlass). Hinweise: Verzehrkarte am Kiosk (EC/Kredit oder bar), Security überall – bei Problemen nicht erst zum Eingang.
+- **Vibes:** Angst vor Beleidigungen auf der Startseite → Live-Vibes zeigen nur noch **20 feste Texte** aus `config.js`. Der Vibe-Check bleibt Challenge 2, wird gespeichert (für einen Post „Das waren eure Meinungen“), aber nicht mehr öffentlich gezeigt und nicht mehr als Story geteilt. `GET /api/stats` gibt keine Vibe-Texte mehr heraus (sonst wären sie über die API weiter abrufbar).
+
 ---
 
 ## 2. Verworfene Ideen (und warum)

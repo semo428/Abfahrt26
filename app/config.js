@@ -15,20 +15,65 @@ window.ABFAHRT_CONFIG = {
   // Reihenfolge der Runden in der Live-Auslosung – die letzte ist das große Finale
   revealOrder: ["shirt", "drink", "meet"],
 
-  // ---------- Ablauf des Abends (BEISPIEL) ----------
-  // Zeiten nach Mitternacht werden automatisch dem nächsten Tag zugeordnet.
-  // highlight: true = rot hervorgehoben
-  scheduleIsExample: true,
-  schedule: [
-    { time: "21:00", title: "Einlass",              note: "Ab 18 · Ausweis mitbringen" },
-    { time: "21:30", title: "Warm-up",              note: "DJ Beispiel 1" },
-    { time: "23:00", title: "Main Set",             note: "DJ Beispiel 2" },
-    { time: "00:00", title: "Mitternachts-Moment",  note: "Handys hoch – Story mit @alfonsx_sigmaringen!", highlight: true },
-    { time: "01:00", title: "Live-Act",             note: "Beispiel-Act" },
-    { time: "02:15", title: "Closing Set",          note: "DJ Beispiel 3" },
-    { time: "04:00", title: "Live-Auslosung",       note: "Auf deinem Handy – Gewinne an der Bar abholen", highlight: true },
-    { time: "05:00", title: "Ende",                 note: "Kommt gut heim!" }
+  // ---------- Timetable ----------
+  // Zeiten nach Mitternacht werden automatisch dem nächsten Tag zugeordnet. Ohne Zeiten = läuft die ganze Nacht.
+  timetable: [
+    { floor: "X Floor", where: "Alfons", sets: [
+      { from: "22:00", to: "23:30", artist: "Sandy Sel" },
+      { from: "23:30", to: "01:00", artist: "Marco Berto" },
+      { from: "01:00", to: "02:30", artist: "NYRA" },
+      { from: "02:30", to: "04:00", artist: "CHRISSYJEEY" },
+      { from: "04:00", to: "06:00", artist: "Summit" }
+    ] },
+    { floor: "Bunker Floor", where: "Bunker · Treppe im Außenbereich", sets: [
+      { from: "23:00", to: "00:15", artist: "Teekay" },
+      { from: "00:15", to: "01:30", artist: "Benjamin Trippel" },
+      { from: "01:30", to: "02:40", artist: "Kim Ahlf" },
+      { from: "02:40", to: "03:50", artist: "DJ Jeff" },
+      { from: "03:50", to: "05:00", artist: "M.a.u.r.i." }
+    ] },
+    { floor: "DB Floor", where: "DB Halle", sets: [
+      { artist: "Djimbel", note: "die ganze Nacht" }
+    ] }
   ],
+
+  // ---------- Nächste Events (Tab „Events“) ----------
+  // Vergangene Events werden automatisch ausgeblendet. featured: true = große Karte oben.
+  events: [
+    { date: "2027-04-24", title: "Abfahrt", badge: "60. Event · Jubiläum", featured: true,
+      text: "Die nächste Abfahrt – unser 60. Event. Das feiern wir groß. Save the date!" },
+    { date: "2026-12-24", title: "Heiligabend im alfons x", text: "Nach der Bescherung noch raus? Wir feiern Heiligabend zusammen." },
+    { date: "2026-12-31", title: "Silvester im alfons x", text: "Rein ins neue Jahr – mit Countdown um Mitternacht." }
+  ],
+  eventsNote: "Alle Infos & Tickets kommen zuerst auf Instagram.",
+
+  // ---------- Live-Vibes auf der Startseite ----------
+  // Feste Auswahl – echte Vibes der Gäste werden gespeichert, aber nicht öffentlich angezeigt (Schutz vor Beleidigungen).
+  vibes: [
+    { stars: 5, text: "Bass im Bauch, Grinsen im Gesicht", name: "Tanzflächen-Pirat" },
+    { stars: 5, text: "bester abend seit monaten!!", name: "Disco-Dackel" },
+    { stars: 4, text: "die lichtshow is komplett verrückt", name: "Licht-Lurch" },
+    { stars: 5, text: "Meine crew und ich gehn nie wieder heim", name: "Nachteulen-Boss" },
+    { stars: 5, text: "Der DJ ließt meine Gedanken", name: "Beat-Biber" },
+    { stars: 4, text: "Bunker = beste Entscheidung heute", name: "Kellerkind" },
+    { stars: 5, text: "Füsse tun weh egal weiter!", name: "Sohlen-Brenner" },
+    { stars: 5, text: "hab 3 neue freunde gefunden haha", name: "Kuschel-Kaktus" },
+    { stars: 4, text: "Foodtruck rettet die Nacht", name: "Pommes-Prinz" },
+    { stars: 5, text: "Gänsehaut beim Drop", name: "Drop-Dino" },
+    { stars: 5, text: "Abfahrt hält, was der Name verspricht", name: "Schienen-Surfer" },
+    { stars: 4, text: "Chill-Area zum Durchatmen, dann wieder rein", name: "Sofa-Rakete" },
+    { stars: 5, text: "Sigmaringen kan richtig feiern", name: "Hohenzollern-Hüpfer" },
+    { stars: 5, text: "ich will hier wohnen", name: "Party-Pinguin" },
+    { stars: 4, text: "Stimmung auf dem X Floor: 100 %", name: "X-Floor-Flummi" },
+    { stars: 5, text: "bischen verliebt in diesen Abend", name: "Herzchen-Hupe" },
+    { stars: 5, text: "So viele gute Leute auf einem Haufen", name: "Funkel-Fuchs" },
+    { stars: 4, text: "Tattoo gestochen, Abend gerettet", name: "Tinten-Tiger" },
+    { stars: 5, text: "wann is die nächste Abfahrt?!?", name: "Bahnsteig-Bär" },
+    { stars: 5, text: "Mehr davon. Bitte. Sofort.", name: "Zugabe-Zebra" }
+  ],
+
+  // ---------- Gut zu wissen (Lageplan) ----------
+  kioskInfo: "Hol sie dir gleich am Anfang am Kiosk – dort geht EC-/Kreditkarte, sonst zahlst du bar.",
 
   // ---------- Lageplan ----------
   // mapImage leer = gezeichneter Beispielplan. Später z. B. "lageplan.jpg" in den Ordner legen und hier eintragen.
@@ -37,5 +82,5 @@ window.ABFAHRT_CONFIG = {
   address: "alfons x, Sigmaringen",   // für den Button „Route planen“ (Google Maps öffnet sich nur per Klick)
 
   // ---------- Hilfe am Abend ----------
-  helpWhere: "Security am Eingang oder Personal an der Bar"
+  helpWhere: "Überall im Club ist Security unterwegs – sprich einfach die nächste an, du musst nicht erst zum Eingang. Auch das Personal an der Bar hilft dir"
 };
