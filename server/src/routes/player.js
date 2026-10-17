@@ -12,16 +12,9 @@ const STATS_SQL = `
   select json_build_object(
     'players',    (select count(*) from players)::int,
     'vibe_avg',   (select round(avg(stars)::numeric, 2) from vibes)::float8,
-    'vibe_count', (select count(*) from vibes)::int,
-    'recent',     coalesce((select json_agg(x) from (
-                    select p.fun_name, v.stars, v.text
-                    from vibes v join players p on p.id = v.player_id
-                    order by v.created_at desc limit 3) x), '[]'::json),
-    'sample',     coalesce((select json_agg(y) from (
-                    select p.fun_name, v.stars, v.text
-                    from vibes v join players p on p.id = v.player_id
-                    order by random() limit 7) y), '[]'::json)
+    'vibe_count', (select count(*) from vibes)::int
   ) as s`;
+// Vibe-Texte der Gäste werden gespeichert, aber nie öffentlich herausgegeben (Live-Vibes zeigt feste Texte aus config.js)
 // Live-Auslosung: Spaßnamen zum Durchwürfeln und (erst ab reveal_at) die Gewinner – nur Spaßname + Gewinn
 const NAMES_SQL = 'select coalesce(json_agg(fun_name), \'[]\'::json) as n from (select fun_name from players where photo_at is not null and vibe_at is not null order by random() limit 80) x';
 const WINNERS_SQL = "select coalesce(json_agg(json_build_object('fun_name', fun_name, 'prize', prize)), '[]'::json) as w from players where status in ('drawn', 'won') and prize is not null";

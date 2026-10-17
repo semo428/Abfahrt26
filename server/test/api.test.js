@@ -199,10 +199,8 @@ test('me, Foto-Challenge idempotent, Vibe mit Filter und Limits, Statistik', asy
   const s = await call('GET', '/api/stats');
   assert.equal(s.status, 200);
   assert.ok(s.json.players >= 1); assert.ok(s.json.vibe_count >= 2); assert.equal(typeof s.json.vibe_avg, 'number');
-  assert.equal(s.json.recent[0].text, 'zweiter');
-  assert.equal(s.json.recent[1].text, 'läuft bei mir', 'Leerraum normalisiert');
-  assert.ok(Array.isArray(s.json.sample) && s.json.sample.length >= 1 && s.json.sample.length <= 7);
-  assert.deepEqual(Object.keys(s.json.sample[0]).sort(), ['fun_name', 'stars', 'text']);
+  assert.deepEqual(Object.keys(s.json).sort(), ['players', 'vibe_avg', 'vibe_count']);
+  assert.doesNotMatch(s.text, /zweiter|läuft/, 'keine Vibe-Texte in der Statistik');
   assert.doesNotMatch(s.text, /ig_handle|t_/, 'keine Instagram-Namen in der Statistik');
 });
 
